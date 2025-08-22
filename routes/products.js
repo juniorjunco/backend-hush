@@ -29,10 +29,12 @@ router.post('/upload', upload.array('images', 5), (req, res) => {
     return res.status(400).json({ success: false, message: 'No se subieron imágenes' });
   }
 
-  // Cloudinary devuelve `path` con la URL segura
-  const urls = req.files.map(file => file.path);
+  // Cloudinary devuelve `secure_url` con la URL segura
+  const urls = req.files.map(file => file.path || file.secure_url);
+
   res.status(200).json({ success: true, imageUrls: urls });
 });
+
 
 // Obtener todos los productos
 router.get('/', async (req, res) => {
