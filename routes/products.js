@@ -2,28 +2,35 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const multer = require('multer');
-const path = require('path');
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Configuración de Multer para imágenes
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
-    cb(null, Date.now() + ext);
-  }
+// ⚡ Configuración de Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const upload = multer({ storage: storage });
+// ⚡ Configuración de Multer con Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'products', // Carpeta en tu Cloudinary
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+  },
+});
 
-// Subir múltiples imágenes
+const upload = multer({ storage });
+
+// Subir múltiples imágenes (ahora directo a Cloudinary)
 router.post('/upload', upload.array('images', 5), (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ success: false, message: 'No se subieron imágenes' });
   }
 
-  const urls = req.files.map(file => `http://localhost:5000/uploads/${file.filename}`);
+  // Cloudinary devuelve `path` con la URL segura
+  const urls = req.files.map(file => file.path);
   res.status(200).json({ success: true, imageUrls: urls });
 });
 
@@ -51,13 +58,13 @@ router.post('/', async (req, res) => {
     price,
     discountPrice,
     imageUrl,
-    imageUrls, // 👈 Agregado
+    imageUrls,
     category,
     genero,
     tallas,
     descripcion,
     isNewIn,
-    isFeatured
+    isFeatured,
   } = req.body;
 
   try {
@@ -66,13 +73,13 @@ router.post('/', async (req, res) => {
       price,
       discountPrice,
       imageUrl,
-      imageUrls, // 👈 Agregado
+      imageUrls,
       category,
       genero,
       tallas,
       descripcion,
       isNewIn,
-      isFeatured
+      isFeatured,
     });
 
     await newProduct.save();
@@ -83,16 +90,12 @@ router.post('/', async (req, res) => {
   }
 });
 
-
-
-// 🆕 EDITAR PRODUCTO por ID
+// EDITAR PRODUCTO por ID
 router.put('/:id', async (req, res) => {
   try {
-    const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
+    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
 
     if (!updatedProduct) {
       return res.status(404).json({ message: 'Producto no encontrado' });
@@ -105,7 +108,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// 🆕 ELIMINAR PRODUCTO por ID
+// ELIMINAR PRODUCTO por ID
 router.delete('/:id', async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
