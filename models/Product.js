@@ -1,11 +1,27 @@
 const mongoose = require('mongoose');
 
+const imageSchema = new mongoose.Schema({
+  url: { type: String, required: true },
+  name: { type: String, default: '' }, // nombre personalizado para la imagen
+});
+
 const productSchema = new mongoose.Schema({
   name: String,
   price: Number,
   discountPrice: Number,
-  imageUrl: String, // Imagen principal (se mantiene por compatibilidad)
-  imageUrls: [String], // ⬅️ NUEVO: array de imágenes adicionales
+
+  // Imagen principal con nombre
+  imageUrl: {
+    type: imageSchema,
+    default: null,
+  },
+
+  // Galería de imágenes
+  imageUrls: {
+    type: [imageSchema],
+    default: [],
+  },
+
   category: String,
   genero: String,
   tallas: [
