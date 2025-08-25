@@ -23,53 +23,75 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage });
 
-// Subir múltiples imágenes (ahora directo a Cloudinary)
+/* ============================================================
+   🔹 SUBIDA DE IMÁGENES A CLOUDINARY (opcional desde backend)
+   ============================================================ */
 router.post('/upload', upload.array('images', 5), (req, res) => {
   if (!req.files || req.files.length === 0) {
-    return res.status(400).json({ success: false, message: 'No se subieron imágenes' });
+    return res
+      .status(400)
+      .json({ success: false, message: 'No se subieron imágenes' });
   }
 
-  // Cloudinary devuelve `secure_url` con la URL segura
-  const urls = req.files.map(file => file.path || file.secure_url);
+  // Cloudinary devuelve `path` (que es el `secure_url`)
+  const urls = req.files.map((file) => file.path);
 
   res.status(200).json({ success: true, imageUrls: urls });
 });
 
-
-// Obtener todos los productos
+/* ============================================================
+   🔹 OBTENER PRODUCTOS
+   ============================================================ */
 router.get('/', async (req, res) => {
-  const products = await Product.find().sort({ createdAt: -1 });
-  res.json(products);
+  try {
+    const products = await Product.find().sort({ createdAt: -1 });
+    res.json(products);
+  } catch (err) {
+    console.error('Error al obtener productos:', err);
+    res.status(500).json({ message: 'Error al obtener productos' });
+  }
 });
 
-// Obtener producto por ID
 router.get('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: 'Producto no encontrado' });
+    if (!product)
+      return res.status(404).json({ message: 'Producto no encontrado' });
     res.json(product);
   } catch (err) {
+    console.error('Error al obtener producto:', err);
     res.status(500).json({ message: 'Error al obtener producto' });
   }
 });
 
-// Crear un producto nuevo
+/* ============================================================
+   🔹 CREAR PRODUCTO
+   ============================================================ */
 router.post('/', async (req, res) => {
-  const {
-    name,
-    price,
-    discountPrice,
-    imageUrl,
-    imageUrls,
-    category,
-    genero,
-    tallas,
-    descripcion,
-    isNewIn,
-    isFeatured,
-  } = req.body;
-
   try {
+    let {
+      name,
+      price,
+      discountPrice,
+      imageUrl,
+      imageUrls,
+      category,
+      genero,
+      tallas,
+      descripcion,
+      isNewIn,
+      isFeatured,
+    } = req.body;
+
+    // 🛠 Asegurar que imageUrls sea un array
+    if (typeof imageUrls === 'string') {
+      try {
+        imageUrls = JSON.parse(imageUrls); // Si viene como JSON string
+      } catch {
+        imageUrls = [imageUrls]; // Si es un string plano
+      }
+    }
+
     const newProduct = new Product({
       name,
       price,
@@ -87,17 +109,21 @@ router.post('/', async (req, res) => {
     await newProduct.save();
     res.status(201).json(newProduct);
   } catch (error) {
-    console.error(error);
+    console.error('Error al crear producto:', error);
     res.status(400).json({ error: 'No se pudo crear el producto' });
   }
 });
 
-// EDITAR PRODUCTO por ID
+/* ============================================================
+   🔹 EDITAR PRODUCTO
+   ============================================================ */
 router.put('/:id', async (req, res) => {
   try {
-    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
+    const updatedProduct = await Product.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
 
     if (!updatedProduct) {
       return res.status(404).json({ message: 'Producto no encontrado' });
@@ -110,7 +136,9 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// ELIMINAR PRODUCTO por ID
+/* ============================================================
+   🔹 ELIMINAR PRODUCTO
+   ============================================================ */
 router.delete('/:id', async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
