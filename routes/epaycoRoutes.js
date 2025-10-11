@@ -39,4 +39,24 @@ router.post('/create', (req, res) => {
   }
 });
 
+// ✅ Ruta para recibir la confirmación de pago de ePayco
+router.post('/confirmation', async (req, res) => {
+  try {
+    const data = req.body;
+    console.log('✅ Confirmación recibida de ePayco:', data);
+
+    // Aquí puedes hacer algo útil, por ejemplo:
+    // - Verificar si el pago fue exitoso (x_response == 'Aceptada')
+    // - Actualizar el estado del pedido en tu base de datos
+    // - Enviar correo o notificación
+
+    // ⚠️ ePayco necesita un status 200 para confirmar que tu backend recibió los datos
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('❌ Error procesando confirmación:', error);
+    res.status(500).send('Error');
+  }
+});
+
+
 module.exports = router;
