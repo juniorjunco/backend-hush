@@ -14,7 +14,7 @@ router.post('/create', (req, res) => {
     const reference = uuidv4();
 
     const data = {
-      publicKey: process.env.EPAYCO_PUBLIC_KEY,
+      publicKey: process.env.EPAYCO_PUBLIC_KEY, // ✅ asegúrate de tenerla en Vercel
       name,
       description: items.map((i) => i.name).join(', '),
       invoice: reference,
@@ -25,12 +25,15 @@ router.post('/create', (req, res) => {
       country: 'CO',
       lang: 'es',
       external: 'false',
-      response: process.env.PAYCO_RESPONSE_URL,
-      confirmation: process.env.PAYCO_CONFIRMATION_URL,
+      response: process.env.PAYCO_RESPONSE_URL, // URL de redirección tras el pago
+      confirmation: process.env.PAYCO_CONFIRMATION_URL, // URL webhook que hiciste
       email_billing: email,
       extra1: JSON.stringify(items),
-      test: process.env.EPAYCO_TEST_MODE === 'true',
+      test: process.env.EPAYCO_TEST_MODE === 'true', // true si estás en modo pruebas
     };
+
+    console.log('🔑 Llave pública enviada:', data.publicKey);
+    console.log('📦 Datos de pago:', data);
 
     return res.json({ success: true, data });
   } catch (err) {
@@ -45,18 +48,20 @@ router.post('/confirmation', async (req, res) => {
     const data = req.body;
     console.log('✅ Confirmación recibida de ePayco:', data);
 
-    // Aquí puedes hacer algo útil, por ejemplo:
-    // - Verificar si el pago fue exitoso (x_response == 'Aceptada')
-    // - Actualizar el estado del pedido en tu base de datos
-    // - Enviar correo o notificación
+    // Si quieres verificar manualmente el estado:
+    if (data.x_response === 'Aceptada') {
+      console.log('💰 Pago aprobado:', data.x_id_invoice);
+      // Aquí podrías actualizar el estado del pedido en MongoDB
+    } else {
+      console.log('⚠️ Pago no aprobado:', data.x_response);
+    }
 
-    // ⚠️ ePayco necesita un status 200 para confirmar que tu backend recibió los datos
+    // ⚠️ ePayco necesita un 200 para no reenviar
     res.status(200).send('OK');
   } catch (error) {
     console.error('❌ Error procesando confirmación:', error);
     res.status(500).send('Error');
   }
 });
-
 
 module.exports = router;
