@@ -14,33 +14,32 @@ router.post('/create', (req, res) => {
     const reference = uuidv4();
 
     const data = {
-      publicKey: process.env.EPAYCO_PUBLIC_KEY, // ✅ asegúrate de tenerla en Vercel
-      name,
+      key: process.env.EPAYCO_PUBLIC_KEY, // ✅ CORREGIDO
+      name: "Compra en Hush",             // ✅ Nombre del pago
       description: items.map((i) => i.name).join(', '),
       invoice: reference,
       currency: 'COP',
-      amount,
+      amount: amount.toString(),
       tax: '0',
       tax_base: '0',
       country: 'CO',
       lang: 'es',
       external: 'false',
-      response: process.env.PAYCO_RESPONSE_URL, // URL de redirección tras el pago
-      confirmation: process.env.PAYCO_CONFIRMATION_URL, // URL webhook que hiciste
+      response: process.env.PAYCO_RESPONSE_URL,
+      confirmation: process.env.PAYCO_CONFIRMATION_URL,
       email_billing: email,
       extra1: JSON.stringify(items),
-      test: process.env.EPAYCO_TEST_MODE === 'true', // true si estás en modo pruebas
+      test: process.env.EPAYCO_TEST_MODE === 'true',
     };
 
-    console.log('🔑 Llave pública enviada:', data.publicKey);
-    console.log('📦 Datos de pago:', data);
-
+    console.log('📦 Datos de pago enviados a frontend:', data);
     return res.json({ success: true, data });
   } catch (err) {
     console.error("Error en /create epayco:", err);
     return res.status(500).json({ success: false, message: "Error interno del servidor" });
   }
 });
+
 
 // ✅ Ruta para recibir la confirmación de pago de ePayco
 router.post('/confirmation', async (req, res) => {
