@@ -46,32 +46,44 @@ router.post('/create', (req, res) => {
 router.post('/confirmation', async (req, res) => {
   try {
     console.log('✅ Confirmación recibida de ePayco');
-
-    // Imprime todo el cuerpo recibido
     console.log('📦 Datos recibidos:', req.body);
 
     const data = req.body;
 
     if (!data || !data.x_response) {
       console.log('⚠️ Datos de confirmación vacíos o incompletos');
-      return res.status(400).send('Datos incompletos');
+      // Responder 200 igual, para que ePayco no repita la confirmación
+      return res.status(200).send('OK');
     }
 
-    // Verifica estado del pago
-    if (data.x_response === 'Aceptada') {
-      console.log('💰 Pago aprobado:', data.x_id_invoice);
-      // Aquí puedes actualizar tu pedido en la base de datos, marcar como pagado, etc.
-    } else {
-      console.log('⚠️ Pago no aprobado:', data.x_response);
+    // Manejo del estado de pago
+    switch (data.x_response) {
+      case 'Aceptada':
+        console.log('💰 Pago aprobado:', data.x_id_invoice);
+        // Aquí actualizas el pedido, inventario, usuario, etc.
+        break;
+
+      case 'Rechazada':
+        console.log('🚫 Pago rechazado');
+        break;
+
+      case 'Abandonada':
+        console.log('⚠️ Pago abandonado por el usuario');
+        break;
+
+      default:
+        console.log('❓ Estado desconocido:', data.x_response);
     }
 
-    // ePayco necesita un 200 OK siempre
+    // ePayco necesita 200 OK SIEMPRE
     res.status(200).send('OK');
   } catch (error) {
     console.error('❌ Error procesando confirmación:', error);
-    res.status(500).send('Error interno');
+    // Aun si hay error, responder 200 para evitar que ePayco repita la petición
+    res.status(200).send('OK');
   }
 });
+
 
 
 module.exports = router;
