@@ -12,14 +12,25 @@ config();
 connectDB();
 
 const app = express();
-app.use(cors());
+
+// ✅ Configuración CORS correcta
+app.use(cors({
+  origin: [
+    "https://hush-sigma.vercel.app", // frontend producción
+    "http://localhost:5173",         // frontend desarrollo (Vite)
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+}));
+
+// ✅ Middlewares
 app.use(express.json());
 
-// Rutas
+// ✅ Rutas
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/epayco", epaycoRoutes);
 app.use("/uploads", express.static("uploads"));
 
-// Exportar como handler para Vercel
+// ✅ Exportar handler para Vercel
 export default app;
