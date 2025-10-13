@@ -45,23 +45,33 @@ router.post('/create', (req, res) => {
 // ✅ Ruta para recibir la confirmación de pago de ePayco
 router.post('/confirmation', async (req, res) => {
   try {
-    const data = req.body;
-    console.log('✅ Confirmación recibida de ePayco:', data);
+    console.log('✅ Confirmación recibida de ePayco');
 
-    // Si quieres verificar manualmente el estado:
+    // Imprime todo el cuerpo recibido
+    console.log('📦 Datos recibidos:', req.body);
+
+    const data = req.body;
+
+    if (!data || !data.x_response) {
+      console.log('⚠️ Datos de confirmación vacíos o incompletos');
+      return res.status(400).send('Datos incompletos');
+    }
+
+    // Verifica estado del pago
     if (data.x_response === 'Aceptada') {
       console.log('💰 Pago aprobado:', data.x_id_invoice);
-      // Aquí podrías actualizar el estado del pedido en MongoDB
+      // Aquí puedes actualizar tu pedido en la base de datos, marcar como pagado, etc.
     } else {
       console.log('⚠️ Pago no aprobado:', data.x_response);
     }
 
-    // ⚠️ ePayco necesita un 200 para no reenviar
+    // ePayco necesita un 200 OK siempre
     res.status(200).send('OK');
   } catch (error) {
     console.error('❌ Error procesando confirmación:', error);
-    res.status(500).send('Error');
+    res.status(500).send('Error interno');
   }
 });
+
 
 module.exports = router;
