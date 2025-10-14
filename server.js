@@ -6,7 +6,8 @@ const bodyParser = require('body-parser');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/products');
-const epaycoRoutes = require('./routes/epaycoRoutes');
+const payments = require('./routes/payments');
+const confirmation = require('/routes/confirmation')
 
 const app = express();
 
@@ -27,7 +28,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // ✅ Rutas
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/epayco', epaycoRoutes);
+app.use('/api/epayco', payments);
+app.use('/api/confirmation', )
 app.use('/uploads', express.static('uploads'));
 
 // ✅ Conexión a MongoDB
