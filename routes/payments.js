@@ -11,19 +11,16 @@ router.post("/create", async (req, res) => {
 
     const { amount, name, items, email } = req.body;
 
-    // ✅ Validación básica de datos
     if (!amount || !name || !items || !email) {
-      console.log("❌ Faltan datos requeridos para procesar el pago");
+      console.log("❌ Faltan datos requeridos para el pago");
       return res.status(400).json({
         success: false,
         message: "Faltan datos para el pago",
       });
     }
 
-    // ✅ Generar referencia única de pago
     const reference = uuidv4();
 
-    // ✅ Construir la data para ePayco
     const paymentData = {
       key: process.env.EPAYCO_PUBLIC_KEY,
       name: "Compra en Hush",
@@ -45,13 +42,11 @@ router.post("/create", async (req, res) => {
 
     console.log("✅ Datos de pago generados:", paymentData);
 
-    // ✅ Enviar la información al frontend
     return res.status(200).json({
       success: true,
       message: "Datos de pago generados correctamente",
       data: paymentData,
     });
-
   } catch (error) {
     console.error("💥 Error en /payments/create:", error);
     return res.status(500).json({
@@ -62,9 +57,3 @@ router.post("/create", async (req, res) => {
 });
 
 export default router;
-
-
-
-
-
-module.exports = router;

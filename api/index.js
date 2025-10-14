@@ -25,13 +25,15 @@ app.use(cors({
 }));
 
 // ✅ Middlewares
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
 
 // ✅ Rutas
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/create", payments);
-app.use("/api/confirmation", confirmation)
+app.use("/api", confirmation)
 app.use("/uploads", express.static("uploads"));
 
 // ✅ Exportar handler para Vercel
