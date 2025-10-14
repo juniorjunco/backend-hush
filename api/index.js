@@ -6,7 +6,8 @@ import { config } from "dotenv";
 import connectDB from "../config/db.js";
 import authRoutes from "../routes/authRoutes.js";
 import productRoutes from "../routes/products.js";
-import epaycoRoutes from "../routes/epaycoRoutes.js";
+import payments from "../routes/payments.js";
+import confirmation from "../routes/confirmation.js"
 
 config();
 connectDB();
@@ -29,7 +30,8 @@ app.use(express.json());
 // ✅ Rutas
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/epayco", epaycoRoutes);
+app.use("/api/create", payments);
+app.use("/api/confirmation", confirmation)
 app.use("/uploads", express.static("uploads"));
 
 // ✅ Exportar handler para Vercel
