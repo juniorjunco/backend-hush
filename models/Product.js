@@ -1,8 +1,8 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const imageSchema = new mongoose.Schema({
   url: { type: String, required: true },
-  name: { type: String, default: '' }, // nombre personalizado para la imagen
+  name: { type: String, default: "" }, // nombre personalizado para la imagen
 });
 
 const productSchema = new mongoose.Schema({
@@ -45,4 +45,5 @@ const productSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model('Product', productSchema);
+const Product = mongoose.model("Product", productSchema);
+export default Product;

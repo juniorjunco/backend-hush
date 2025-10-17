@@ -1,16 +1,16 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
     unique: true,
-    match: /.+\@.+\..+/
+    match: /.+\@.+\..+/,
   },
   password: {
     type: String,
     required: true,
-    minlength: 6
+    minlength: 6,
   },
   name: String,
   lastName: String,
@@ -19,7 +19,7 @@ const userSchema = new mongoose.Schema({
   birthdate: Date, // antes era String
   phone: {
     type: String,
-    match: /^[0-9\-\+]{9,15}$/
+    match: /^[0-9\-\+]{9,15}$/,
   },
 
   address: {
@@ -27,8 +27,9 @@ const userSchema = new mongoose.Schema({
     city: String,
     state: String,
     zip: String,
-    country: String
+    country: String,
   },
 });
 
-module.exports = mongoose.model('User', userSchema);
+const User = mongoose.model("User", userSchema);
+export default User;
