@@ -29,14 +29,14 @@ app.use(
   })
 );
 
-app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use("/uploads", express.static("uploads"));
 
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/epayco", payments);
 app.use("/api/confirmation", confirmation);
-app.use("/uploads", express.static("uploads"));
 
 // 🔹 Conexión a MongoDB
 mongoose
