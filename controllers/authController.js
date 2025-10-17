@@ -1,8 +1,9 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+// controllers/authController.js
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
-exports.register = async (req, res) => {
+export const register = async (req, res) => {
   const { email, password, name } = req.body;
 
   try {
@@ -22,7 +23,7 @@ exports.register = async (req, res) => {
   }
 };
 
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -42,7 +43,7 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.getProfile = async (req, res) => {
+export const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-password');
     res.json(user);
@@ -52,7 +53,7 @@ exports.getProfile = async (req, res) => {
 };
 
 // ✅ Actualiza datos del perfil y dirección
-exports.updateProfile = async (req, res) => {
+export const updateProfile = async (req, res) => {
   try {
     const {
       name,
@@ -86,7 +87,7 @@ exports.updateProfile = async (req, res) => {
 };
 
 // ✅ Cambiar contraseña
-exports.changePassword = async (req, res) => {
+export const changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
   try {

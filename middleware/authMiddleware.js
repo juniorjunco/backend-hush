@@ -1,10 +1,12 @@
-const jwt = require('jsonwebtoken');
+// middleware/authMiddleware.js
+import jwt from 'jsonwebtoken';
 
-module.exports = (req, res, next) => {
+const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer '))
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'No autorizado' });
+  }
 
   const token = authHeader.split(' ')[1];
 
@@ -16,3 +18,5 @@ module.exports = (req, res, next) => {
     res.status(401).json({ message: 'Token inválido' });
   }
 };
+
+export default authMiddleware;

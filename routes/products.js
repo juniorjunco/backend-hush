@@ -1,9 +1,10 @@
-const express = require('express');
+import express from 'express';
+import multer from 'multer';
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import Product from '../models/Product.js';
+
 const router = express.Router();
-const Product = require('../models/Product');
-const multer = require('multer');
-const { v2: cloudinary } = require('cloudinary');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 // ⚡ Configuración de Cloudinary
 cloudinary.config({
@@ -24,7 +25,7 @@ const storage = new CloudinaryStorage({
 const upload = multer({ storage });
 
 /* ============================================================
-   🔹 SUBIDA DE IMÁGENES A CLOUDINARY (opcional desde backend)
+   🔹 SUBIDA DE IMÁGENES A CLOUDINARY
    ============================================================ */
 router.post('/upload', upload.array('images', 5), (req, res) => {
   if (!req.files || req.files.length === 0) {
@@ -33,9 +34,7 @@ router.post('/upload', upload.array('images', 5), (req, res) => {
       .json({ success: false, message: 'No se subieron imágenes' });
   }
 
-  // Cloudinary devuelve `path` (que es el `secure_url`)
   const urls = req.files.map((file) => file.path);
-
   res.status(200).json({ success: true, imageUrls: urls });
 });
 
@@ -83,12 +82,11 @@ router.post('/', async (req, res) => {
       isFeatured,
     } = req.body;
 
-    // 🛠 Asegurar que imageUrls sea un array
     if (typeof imageUrls === 'string') {
       try {
-        imageUrls = JSON.parse(imageUrls); // Si viene como JSON string
+        imageUrls = JSON.parse(imageUrls);
       } catch {
-        imageUrls = [imageUrls]; // Si es un string plano
+        imageUrls = [imageUrls];
       }
     }
 
@@ -153,4 +151,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

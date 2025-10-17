@@ -1,6 +1,8 @@
-const express = require('express');
-const authController = require('../controllers/authController'); // ✅ importar todo el controlador
-const authMiddleware = require('../middleware/authMiddleware');
+// routes/authRoutes.js
+import express from 'express';
+import * as authController from '../controllers/authController.js';
+import authMiddleware from '../middleware/authMiddleware.js';
+
 const router = express.Router();
 
 router.post('/register', authController.register);
@@ -9,5 +11,4 @@ router.get('/me', authMiddleware, authController.getProfile);
 router.put('/me', authMiddleware, authController.updateProfile);
 router.put('/change-password', authMiddleware, authController.changePassword);
 
-
-module.exports = router;
+export default router;
