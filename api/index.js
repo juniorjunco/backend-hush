@@ -18,6 +18,7 @@ const app = express();
 app.use(cors({
   origin: [
     "https://hush-sigma.vercel.app", // frontend producción
+    "https://admin-hush.vercel.app",
     "http://localhost:5173",         // frontend desarrollo (Vite)
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],

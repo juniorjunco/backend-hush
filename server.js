@@ -22,6 +22,7 @@ app.use(
   cors({
     origin: [
       "https://hush-sigma.vercel.app", // Producción
+      "https://admin-hush.vercel.app",
       "http://localhost:5173",         // Desarrollo
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
