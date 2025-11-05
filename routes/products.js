@@ -70,12 +70,11 @@ router.get("/:id", async (req, res) => {
 });
 
 /* ============================================================
-   🔹 CREAR PRODUCTO (con imagen y datos)
+   🔹 CREAR PRODUCTO (con imagen subida a Cloudinary)
    ============================================================ */
-router.post("/", upload.array("images", 5), async (req, res) => {
+router.post('/', upload.single('imageUrl'), async (req, res) => {
   try {
-    // Campos de texto enviados en el FormData
-    let {
+    const {
       name,
       price,
       discountPrice,
@@ -87,45 +86,42 @@ router.post("/", upload.array("images", 5), async (req, res) => {
       isFeatured,
     } = req.body;
 
-    // Parseo de tallas si vienen como string
-    if (tallas && typeof tallas === "string") {
+    let parsedTallas = [];
+    if (tallas) {
       try {
-        tallas = JSON.parse(tallas);
+        parsedTallas = JSON.parse(tallas);
       } catch {
-        tallas = [];
+        parsedTallas = [];
       }
     }
 
-    // Procesar imágenes subidas a Cloudinary
-    const imageUrls = req.files?.map((file) => ({
-      url: file.path,
-      name: file.originalname,
-    })) || [];
+    // 🔹 Si hay imagen subida, Cloudinary la guarda en req.file.path
+    const imageUrl = req.file
+      ? { url: req.file.path, name: req.file.filename || '' }
+      : null;
 
-    const imageUrl = imageUrls.length > 0 ? imageUrls[0] : null;
-
-    // Crear el nuevo producto
+    // 🔹 Crear producto en Mongo
     const newProduct = new Product({
       name,
       price,
-      discountPrice,
+      discountPrice: discountPrice || 0,
       imageUrl,
-      imageUrls,
       category,
       genero,
-      tallas,
+      tallas: parsedTallas,
       descripcion,
-      isNewIn: isNewIn === "true" || isNewIn === true,
-      isFeatured: isFeatured === "true" || isFeatured === true,
+      isNewIn: isNewIn || false,
+      isFeatured: isFeatured || false,
     });
 
     await newProduct.save();
     res.status(201).json({ success: true, product: newProduct });
   } catch (error) {
-    console.error("❌ Error al crear producto:", error);
-    res.status(400).json({ success: false, error: error.message });
+    console.error('❌ Error al crear producto:', error);
+    res.status(400).json({ error: 'No se pudo crear el producto' });
   }
 });
+
 
 /* ============================================================
    🔹 EDITAR PRODUCTO
