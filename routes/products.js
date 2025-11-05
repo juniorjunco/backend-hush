@@ -1,37 +1,40 @@
-import express from 'express';
-import multer from 'multer';
-import { v2 as cloudinary } from 'cloudinary';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import Product from '../models/Product.js';
+import express from "express";
+import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import Product from "../models/Product.js";
 
 const router = express.Router();
 
-// ⚡ Configuración de Cloudinary
+/* ============================================================
+   ⚙️ CONFIGURACIÓN DE CLOUDINARY
+   ============================================================ */
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// ⚡ Configuración de Multer con Cloudinary
+/* ============================================================
+   ⚙️ CONFIGURACIÓN DE MULTER + CLOUDINARY
+   ============================================================ */
 const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
+  cloudinary,
   params: {
-    folder: 'products', // Carpeta en tu Cloudinary
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    folder: "products",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
   },
 });
-
 const upload = multer({ storage });
 
 /* ============================================================
-   🔹 SUBIDA DE IMÁGENES A CLOUDINARY
+   🔹 SUBIDA DE IMÁGENES (uso opcional)
    ============================================================ */
-router.post('/upload', upload.array('images', 5), (req, res) => {
+router.post("/upload", upload.array("images", 5), (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res
       .status(400)
-      .json({ success: false, message: 'No se subieron imágenes' });
+      .json({ success: false, message: "No se subieron imágenes" });
   }
 
   const urls = req.files.map((file) => file.path);
@@ -39,41 +42,43 @@ router.post('/upload', upload.array('images', 5), (req, res) => {
 });
 
 /* ============================================================
-   🔹 OBTENER PRODUCTOS
+   🔹 OBTENER TODOS LOS PRODUCTOS
    ============================================================ */
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const products = await Product.find().sort({ createdAt: -1 });
     res.json(products);
   } catch (err) {
-    console.error('Error al obtener productos:', err);
-    res.status(500).json({ message: 'Error al obtener productos' });
-  }
-});
-
-router.get('/:id', async (req, res) => {
-  try {
-    const product = await Product.findById(req.params.id);
-    if (!product)
-      return res.status(404).json({ message: 'Producto no encontrado' });
-    res.json(product);
-  } catch (err) {
-    console.error('Error al obtener producto:', err);
-    res.status(500).json({ message: 'Error al obtener producto' });
+    console.error("Error al obtener productos:", err);
+    res.status(500).json({ message: "Error al obtener productos" });
   }
 });
 
 /* ============================================================
-   🔹 CREAR PRODUCTO
+   🔹 OBTENER PRODUCTO POR ID
    ============================================================ */
-router.post('/', async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
+    const product = await Product.findById(req.params.id);
+    if (!product)
+      return res.status(404).json({ message: "Producto no encontrado" });
+    res.json(product);
+  } catch (err) {
+    console.error("Error al obtener producto:", err);
+    res.status(500).json({ message: "Error al obtener producto" });
+  }
+});
+
+/* ============================================================
+   🔹 CREAR PRODUCTO (con imagen y datos)
+   ============================================================ */
+router.post("/", upload.array("images", 5), async (req, res) => {
+  try {
+    // Campos de texto enviados en el FormData
     let {
       name,
       price,
       discountPrice,
-      imageUrl,
-      imageUrls,
       category,
       genero,
       tallas,
@@ -82,14 +87,24 @@ router.post('/', async (req, res) => {
       isFeatured,
     } = req.body;
 
-    if (typeof imageUrls === 'string') {
+    // Parseo de tallas si vienen como string
+    if (tallas && typeof tallas === "string") {
       try {
-        imageUrls = JSON.parse(imageUrls);
+        tallas = JSON.parse(tallas);
       } catch {
-        imageUrls = [imageUrls];
+        tallas = [];
       }
     }
 
+    // Procesar imágenes subidas a Cloudinary
+    const imageUrls = req.files?.map((file) => ({
+      url: file.path,
+      name: file.originalname,
+    })) || [];
+
+    const imageUrl = imageUrls.length > 0 ? imageUrls[0] : null;
+
+    // Crear el nuevo producto
     const newProduct = new Product({
       name,
       price,
@@ -100,54 +115,73 @@ router.post('/', async (req, res) => {
       genero,
       tallas,
       descripcion,
-      isNewIn,
-      isFeatured,
+      isNewIn: isNewIn === "true" || isNewIn === true,
+      isFeatured: isFeatured === "true" || isFeatured === true,
     });
 
     await newProduct.save();
-    res.status(201).json(newProduct);
+    res.status(201).json({ success: true, product: newProduct });
   } catch (error) {
-    console.error('Error al crear producto:', error);
-    res.status(400).json({ error: 'No se pudo crear el producto' });
+    console.error("❌ Error al crear producto:", error);
+    res.status(400).json({ success: false, error: error.message });
   }
 });
 
 /* ============================================================
    🔹 EDITAR PRODUCTO
    ============================================================ */
-router.put('/:id', async (req, res) => {
+router.put("/:id", upload.array("images", 5), async (req, res) => {
   try {
+    let updateData = { ...req.body };
+
+    // Parseo de tallas si vienen como string
+    if (updateData.tallas && typeof updateData.tallas === "string") {
+      try {
+        updateData.tallas = JSON.parse(updateData.tallas);
+      } catch {
+        updateData.tallas = [];
+      }
+    }
+
+    // Si se envían nuevas imágenes
+    if (req.files && req.files.length > 0) {
+      updateData.imageUrls = req.files.map((file) => ({
+        url: file.path,
+        name: file.originalname,
+      }));
+      updateData.imageUrl = updateData.imageUrls[0];
+    }
+
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true }
     );
 
     if (!updatedProduct) {
-      return res.status(404).json({ message: 'Producto no encontrado' });
+      return res.status(404).json({ message: "Producto no encontrado" });
     }
 
-    res.json(updatedProduct);
+    res.json({ success: true, product: updatedProduct });
   } catch (error) {
-    console.error('Error al actualizar producto:', error);
-    res.status(500).json({ message: 'Error al actualizar producto' });
+    console.error("❌ Error al actualizar producto:", error);
+    res.status(500).json({ success: false, message: "Error al actualizar producto" });
   }
 });
 
 /* ============================================================
    🔹 ELIMINAR PRODUCTO
    ============================================================ */
-router.delete('/:id', async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
     if (!deleted) {
-      return res.status(404).json({ message: 'Producto no encontrado' });
+      return res.status(404).json({ message: "Producto no encontrado" });
     }
-
-    res.json({ success: true, message: 'Producto eliminado correctamente' });
+    res.json({ success: true, message: "Producto eliminado correctamente" });
   } catch (error) {
-    console.error('Error al eliminar producto:', error);
-    res.status(500).json({ message: 'Error al eliminar producto' });
+    console.error("❌ Error al eliminar producto:", error);
+    res.status(500).json({ message: "Error al eliminar producto" });
   }
 });
 
