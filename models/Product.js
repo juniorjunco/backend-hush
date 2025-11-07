@@ -59,17 +59,25 @@ const productSchema = new mongoose.Schema(
       enum: ["Ropa", "Zapatos", "Accesorios"],
     },
 
-    // 🔹 Nuevo campo: subcategoría (ej. GORRAS, GAFAS, BOLSOS)
+    // 🔹 Subcategoría o tipo específico de accesorio
     subCategory: {
       type: String,
       enum: ["GORRAS", "GAFAS", "BOLSOS", "OTROS"],
       default: "OTROS",
     },
 
+    // 🔹 Género
     genero: {
       type: String,
       enum: ["Hombre", "Mujer", "Unisex"],
       default: "Unisex",
+    },
+
+    // 🔹 Filtro visual (OVERSIZE, BÁSICOS, TANK, BUZOS, etc.)
+    filtro: {
+      type: String,
+      enum: ["OVERSIZE", "BÁSICOS", "TANK", "BUZOS", "TODOS", "OTRO"],
+      default: "OTRO",
     },
 
     tallas: {
