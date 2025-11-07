@@ -68,23 +68,12 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ message: "Error al obtener producto" });
   }
 });
-
-/* ============================================================
-   🔹 CREAR PRODUCTO (con imagen subida a Cloudinary)
-   ============================================================ */
-router.post('/', upload.single('imageUrl'), async (req, res) => {
+// ============================================================
+// 🔹 CREAR PRODUCTO CON HASTA 5 IMÁGENES
+// ============================================================
+router.post("/", upload.array("images", 5), async (req, res) => {
   try {
-    const {
-      name,
-      price,
-      discountPrice,
-      category,
-      genero,
-      tallas,
-      descripcion,
-      isNewIn,
-      isFeatured,
-    } = req.body;
+    const { name, price, category, genero, tallas, descripcion } = req.body;
 
     let parsedTallas = [];
     if (tallas) {
@@ -95,33 +84,32 @@ router.post('/', upload.single('imageUrl'), async (req, res) => {
       }
     }
 
-    // 🔹 Si hay imagen subida, Cloudinary la guarda en req.file.path
-    const imageUrl = req.file
-      ? { url: req.file.path, name: req.file.filename || '' }
-      : null;
+    // Guardar URLs de imágenes
+    const imageUrls = req.files
+      ? req.files.map((file) => ({
+          url: file.path,
+          name: file.originalname || "",
+        }))
+      : [];
 
-    // 🔹 Crear producto en Mongo
     const newProduct = new Product({
       name,
       price,
-      discountPrice: discountPrice || 0,
-      imageUrl,
       category,
       genero,
       tallas: parsedTallas,
       descripcion,
-      isNewIn: isNewIn || false,
-      isFeatured: isFeatured || false,
+      imageUrls,
+      imageUrl: imageUrls[0] || null, // la principal es la primera
     });
 
     await newProduct.save();
     res.status(201).json({ success: true, product: newProduct });
   } catch (error) {
-    console.error('❌ Error al crear producto:', error);
-    res.status(400).json({ error: 'No se pudo crear el producto' });
+    console.error("❌ Error al crear producto:", error);
+    res.status(500).json({ success: false, message: "Error al crear producto" });
   }
 });
-
 
 /* ============================================================
    🔹 EDITAR PRODUCTO

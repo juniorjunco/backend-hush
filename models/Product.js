@@ -58,6 +58,14 @@ const productSchema = new mongoose.Schema(
       required: [true, "La categoría es obligatoria"],
       enum: ["Ropa", "Zapatos", "Accesorios"],
     },
+
+    // 🔹 Nuevo campo: subcategoría (ej. GORRAS, GAFAS, BOLSOS)
+    subCategory: {
+      type: String,
+      enum: ["GORRAS", "GAFAS", "BOLSOS", "OTROS"],
+      default: "OTROS",
+    },
+
     genero: {
       type: String,
       enum: ["Hombre", "Mujer", "Unisex"],
