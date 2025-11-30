@@ -7,7 +7,7 @@ import connectDB from "../config/db.js";
 import authRoutes from "../routes/authRoutes.js";
 import productRoutes from "../routes/products.js";
 import payments from "../routes/payments.js";
-import confirmation from "../routes/confirmation.js"
+import mercadopagoWebhook from "./routes/mercadopagoWebhook.js";
 
 config();
 connectDB();
@@ -34,7 +34,7 @@ app.use(express.json());
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/payments", payments);
-app.use("/api/confirmation", confirmation);
+app.use("/api/mercadopago/webhook", mercadopagoWebhook);
 app.use("/uploads", express.static("uploads"));
 
 // ✅ Exportar handler para Vercel
