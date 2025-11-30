@@ -33,7 +33,7 @@ app.use(express.json());
 // ✅ Rutas
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/epayco", payments);
+app.use("/api/payments", payments);
 app.use("/api/confirmation", confirmation);
 app.use("/uploads", express.static("uploads"));
 
