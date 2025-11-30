@@ -26,7 +26,8 @@ router.post("/create_preference", async (req, res) => {
           title: product.name,
           quantity: product.quantity,
           currency_id: "COP",
-          unit_price: product.finalPrice,
+          unit_price: Number(product.price), 
+
         })),
         payer: {
           email,
