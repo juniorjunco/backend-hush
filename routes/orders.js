@@ -1,11 +1,40 @@
 // routes/orders.js
 import express from "express";
 import Order from "../models/Order.js";
-import verifyToken from "../middleware/authMiddleware.js"; // si usas middleware JWT
+import verifyToken from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Obtener pedidos del usuario autenticado
+/* ----------------------------------------------------
+   🟢 1. CREAR ORDEN PREVIA AL PAGO (OBLIGATORIO)
+   ---------------------------------------------------- */
+router.post("/create", verifyToken, async (req, res) => {
+  try {
+    const { items, total, address } = req.body;
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({ error: "No hay productos en la orden" });
+    }
+
+    const newOrder = await Order.create({
+      user: req.user.id,
+      items,
+      total,
+      address,
+      status: "pending",     // Estado inicial
+      preferenceId: null,    // Se llenará después en /payments
+    });
+
+    res.json(newOrder);
+  } catch (error) {
+    console.error("❌ Error creando la orden:", error);
+    res.status(500).json({ error: "Error creando la orden" });
+  }
+});
+
+/* ----------------------------------------------------
+   🟡 2. OBTENER LOS PEDIDOS DEL USUARIO AUTENTICADO
+   ---------------------------------------------------- */
 router.get("/my-orders", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -14,12 +43,14 @@ router.get("/my-orders", verifyToken, async (req, res) => {
 
     res.json(orders);
   } catch (error) {
-    console.error("Error al obtener pedidos:", error);
+    console.error("❌ Error al obtener pedidos:", error);
     res.status(500).json({ error: "Error al obtener pedidos del usuario" });
   }
 });
 
-// Confirmar / actualizar estado de una orden
+/* ----------------------------------------------------
+   🔵 3. ACTUALIZAR ESTADO DE LA ORDEN (ADMIN / WEBHOOK)
+   ---------------------------------------------------- */
 router.post("/confirm", async (req, res) => {
   try {
     const { orderId, status } = req.body;
@@ -32,7 +63,7 @@ router.post("/confirm", async (req, res) => {
 
     res.json({ message: "Orden actualizada correctamente", order });
   } catch (error) {
-    console.error("Error al actualizar orden:", error);
+    console.error("❌ Error al actualizar orden:", error);
     res.status(500).json({ error: "Error en el servidor" });
   }
 });
