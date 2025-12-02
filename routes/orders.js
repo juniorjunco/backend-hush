@@ -16,13 +16,18 @@ router.post("/create", verifyToken, async (req, res) => {
       return res.status(400).json({ error: "No hay productos en la orden" });
     }
 
+    // 🔹 Generar número de factura único
+    const invoiceNumber = "INV-" + Date.now();
+
     const newOrder = await Order.create({
-      user: req.user.id,
+      invoice: invoiceNumber,       // requerido
+      user: req.user.id,            // ID del usuario
+      email: req.user.email,        // requerido
       items,
-      total,
-      address,
-      status: "pending",     // Estado inicial
-      preferenceId: null,    // Se llenará después en /payments
+      amount: total,                // requerido (antes mandabas "total")
+      status: "Pendiente",
+      preferenceId: null,
+      address                       // opcional
     });
 
     res.json(newOrder);
@@ -31,6 +36,7 @@ router.post("/create", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Error creando la orden" });
   }
 });
+
 
 /* ----------------------------------------------------
    🟡 2. OBTENER LOS PEDIDOS DEL USUARIO AUTENTICADO
