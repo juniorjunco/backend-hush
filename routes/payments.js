@@ -30,38 +30,30 @@ router.post("/create_preference", async (req, res) => {
     }
 
     // Crear preferencia Mercado Pago
-   const preference = await new Preference(client).create({
-  body: {
-    items: items.map((product) => ({
-      id: product._id || product.id,
-      title: product.name,
-      quantity: product.quantity,
-      currency_id: "COP",
-      unit_price: Number(product.price),
-    })),
+    const preference = await new Preference(client).create({
+      body: {
+        items: items.map((product) => ({
+          id: product._id || product.id,
+          title: product.name,
+          quantity: product.quantity,
+          currency_id: "COP",
+          unit_price: Number(product.price),
+        })),
 
-    payer: { email },
+        payer: { email },
 
-    back_urls: {
-      success: `${process.env.FRONTEND_URL}/success?orderId=${orderId}`,
-      failure: `${process.env.FRONTEND_URL}/failure?orderId=${orderId}`,
-      pending: `${process.env.FRONTEND_URL}/pending?orderId=${orderId}`,
-    },
+        back_urls: {
+          success: `${process.env.FRONTEND_URL}/success?orderId=${orderId}`,
+          failure: `${process.env.FRONTEND_URL}/failure?orderId=${orderId}`,
+          pending: `${process.env.FRONTEND_URL}/pending?orderId=${orderId}`,
+        },
 
-    auto_return: "approved",
+        auto_return: "approved",
 
-    notification_url: `${process.env.BACKEND_URL}/api/mercadopago/webhook`,
-
-    payment_methods: {
-      excluded_payment_types: [
-        { id: "credit_card" },
-        { id: "debit_card" },
-      ],
-      installments: 1,
-    },
-  },
-});
-
+        // webhook para actualizar orden (pagada, fallida, etc)
+        notification_url: `${process.env.BACKEND_URL}/api/mercadopago/webhook`,
+      },
+    });
 
     // Guardar ID de preferencia en la orden
     order.preferenceId = preference.id;
