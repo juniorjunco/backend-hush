@@ -9,14 +9,16 @@ const orderItemSchema = new mongoose.Schema({
 });
 
 const orderSchema = new mongoose.Schema({
-  invoice: { type: String, required: true, unique: true }, // refPayco
+  invoice: { type: String, required: true, unique: true }, 
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   email: { type: String, required: true },
   items: [orderItemSchema],
   amount: { type: Number, required: true },
-  status: { type: String, default: "Pendiente" }, // Pendiente | Pagado | Rechazado
+  status: { type: String, default: "Pendiente" },
+  preferenceId: { type: String }, // 🔥 NUEVO
   createdAt: { type: Date, default: Date.now },
 });
+
 
 const Order = mongoose.model("Order", orderSchema);
 export default Order;

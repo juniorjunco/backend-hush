@@ -7,8 +7,11 @@ import bodyParser from "body-parser";
 
 import authRoutes from "./routes/authRoutes.js";
 import productRoutes from "./routes/products.js";
+
 import payments from "./routes/payments.js";
 import mercadopagoWebhook from "./routes/mercadopagoWebhook.js";
+import orders from "./routes/orders.js"
+
 
 // 🔹 Cargar variables de entorno
 dotenv.config();
@@ -37,7 +40,9 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/payments", payments);
+app.use("/api/orders", orderRoutes);
 app.use("/api/mercadopago/webhook", mercadopagoWebhook);
+
 
 
 // 🔹 Conexión a MongoDB

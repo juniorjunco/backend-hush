@@ -1,4 +1,3 @@
-// routes/mercadopagoWebhook.js
 import express from "express";
 import axios from "axios";
 import Order from "../models/Order.js";
@@ -9,7 +8,6 @@ const router = express.Router();
 
 /**
  * 🔔 WEBHOOK MERCADO PAGO
- * Recibe todas las notificaciones automáticas.
  */
 router.post("/", async (req, res) => {
   try {
@@ -17,17 +15,16 @@ router.post("/", async (req, res) => {
 
     console.log("📥 Webhook MercadoPago recibido:", JSON.stringify(data, null, 2));
 
-    // Mercado Pago envía payment.id dentro de data.data.id
     const paymentId = data?.data?.id;
 
     if (!paymentId) {
-      console.log("⚠️ Webhook sin payment ID, ignorado.");
+      console.log("⚠️ Webhook sin payment ID");
       return res.status(200).send("NO PAYMENT ID");
     }
 
-    console.log("🔎 Consultando pago en MercadoPago:", paymentId);
+    console.log("🔎 Consultando pago:", paymentId);
 
-    // Consultar el pago real en Mercado Pago
+    // consultar pago real
     const mpResponse = await axios.get(
       `https://api.mercadopago.com/v1/payments/${paymentId}`,
       {
@@ -39,39 +36,44 @@ router.post("/", async (req, res) => {
 
     const payment = mpResponse.data;
 
-    console.log("📘 Pago consultado - Estado:", payment.status);
+    console.log("📘 Estado del pago:", payment.status);
 
-    // Buscar pedido por invoice (lo guardaste así en tu Order)
-    const order = await Order.findOne({ invoice: paymentId });
+    // obtener preferenceId desde la respuesta
+    const preferenceId = payment.order?.id;
+
+    if (!preferenceId) {
+      console.log("⚠️ No se encontró preferenceId en el pago");
+      return res.status(200).send("NO PREFERENCE ID");
+    }
+
+    // buscar la orden usando el preferenceId
+    const order = await Order.findOne({ preferenceId });
 
     if (!order) {
-      console.log("⚠️ No existe un pedido asociado al payment.id:", paymentId);
+      console.log("⚠️ No existe una orden asociada a preferenceId:", preferenceId);
       return res.status(200).send("ORDER NOT FOUND");
     }
 
-    /** -------------------------------------------------
-     * 🟢 SI EL PAGO FUE APROBADO
-     * -------------------------------------------------*/
+    /** -----------------------------------------
+     * 🟢 PAGO APROBADO
+     * ----------------------------------------- */
     if (payment.status === "approved") {
       order.status = "Pagado";
       await order.save();
 
       console.log("💰 Pedido marcado como PAGADO:", order._id);
 
-      // Actualizar inventario y ventas
+      // actualizar inventario
       for (const item of order.items) {
-        const product = await Product.findById(item.productId);
-
+        const product = await Product.findById(item._id);
         if (product) {
           product.sold += item.quantity;
           product.stock = Math.max(product.stock - item.quantity, 0);
           await product.save();
-
-          console.log(`📉 Inventario actualizado: ${product.name}`);
         }
       }
 
-      // Asociar pedido al usuario según el email del Order
+      // asociar pedido al usuario
       const user = await User.findOne({ email: order.email });
 
       if (user) {
@@ -79,36 +81,29 @@ router.post("/", async (req, res) => {
           user.orders.push(order._id);
           await user.save();
         }
-        console.log("👤 Pedido asociado al usuario:", user.email);
       }
     }
 
-    /** -------------------------------------------------
-     * 🔴 SI EL PAGO FUE RECHAZADO
-     * -------------------------------------------------*/
+    /** -----------------------------------------
+     * 🔴 RECHAZADO
+     * ----------------------------------------- */
     else if (payment.status === "rejected") {
       order.status = "Rechazado";
       await order.save();
-      console.log("🚫 Pedido RECHAZADO:", order._id);
     }
 
-    /** -------------------------------------------------
-     * 🟡 SI EL PAGO ESTÁ PENDIENTE O EN PROCESO
-     * -------------------------------------------------*/
+    /** -----------------------------------------
+     * 🟡 PENDIENTE
+     * ----------------------------------------- */
     else if (payment.status === "pending" || payment.status === "in_process") {
       order.status = "Pendiente";
       await order.save();
-      console.log("⏳ Pedido en estado PENDIENTE:", order._id);
-    }
-
-    else {
-      console.log("❓ Estado desconocido:", payment.status);
     }
 
     return res.status(200).send("OK");
   } catch (error) {
-    console.error("❌ Error en webhook MercadoPago:", error);
-    return res.status(200).send("OK"); // Mercado Pago siempre requiere 200
+    console.error("❌ Error en webhook:", error.message);
+    return res.status(200).send("OK");
   }
 });
 
