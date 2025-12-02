@@ -12,22 +12,17 @@ router.post("/create", verifyToken, async (req, res) => {
   try {
     const { items, total, address } = req.body;
 
-    if (!items || items.length === 0) {
-      return res.status(400).json({ error: "No hay productos en la orden" });
-    }
-
-    // 🔹 Generar número de factura único
     const invoiceNumber = "INV-" + Date.now();
 
     const newOrder = await Order.create({
-      invoice: invoiceNumber,       // requerido
-      user: req.user.id,            // ID del usuario
-      email: req.user.email,        // requerido
+      invoice: invoiceNumber,
+      user: req.user.userId,    // 🔥 correcto
+      email: req.user.email,    // 🔥 ya existe
       items,
-      amount: total,                // requerido (antes mandabas "total")
+      amount: total,
+      address,
       status: "Pendiente",
-      preferenceId: null,
-      address                       // opcional
+      preferenceId: null
     });
 
     res.json(newOrder);
