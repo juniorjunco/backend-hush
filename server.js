@@ -10,7 +10,7 @@ import productRoutes from "./routes/products.js";
 
 import payments from "./routes/payments.js";
 import mercadopagoWebhook from "./routes/mercadopagoWebhook.js";
-import orders from "./routes/orders.js"
+import orderRoutes from "./routes/orders.js";
 
 
 // 🔹 Cargar variables de entorno
