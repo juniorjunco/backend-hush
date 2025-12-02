@@ -7,7 +7,7 @@ import connectDB from "../config/db.js";
 import authRoutes from "../routes/authRoutes.js";
 import productRoutes from "../routes/products.js";
 import payments from "../routes/payments.js";
-import mercadopagoWebhook from "./routes/mercadopagoWebhook.js";
+import mercadopagoWebhook from "../routes/mercadopagoWebhook.js";
 
 config();
 connectDB();
