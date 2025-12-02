@@ -8,6 +8,7 @@ import authRoutes from "../routes/authRoutes.js";
 import productRoutes from "../routes/products.js";
 import payments from "../routes/payments.js";
 import mercadopagoWebhook from "../routes/mercadopagoWebhook.js";
+import orderRoutes from "../routes/orders.js";
 
 config();
 connectDB();
@@ -34,6 +35,7 @@ app.use(express.json());
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/payments", payments);
+app.use("/api/orders", orderRoutes);
 app.use("/api/mercadopago/webhook", mercadopagoWebhook);
 app.use("/uploads", express.static("uploads"));
 
