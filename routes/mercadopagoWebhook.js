@@ -15,7 +15,11 @@ router.post("/", async (req, res) => {
 
     console.log("📥 Webhook MercadoPago recibido:", JSON.stringify(data, null, 2));
 
-    const paymentId = data?.data?.id;
+    // Obtener el ID del pago desde diferentes estructuras
+    const paymentId =
+      data?.data?.id ||
+      data?.resource?.split("/").pop() || // fallback cuando envían "resource"
+      null;
 
     if (!paymentId) {
       console.log("⚠️ Webhook sin payment ID");
@@ -24,13 +28,11 @@ router.post("/", async (req, res) => {
 
     console.log("🔎 Consultando pago:", paymentId);
 
-    // consultar pago real
+    // Consultar pago real en Mercado Pago
     const mpResponse = await axios.get(
       `https://api.mercadopago.com/v1/payments/${paymentId}`,
       {
-        headers: {
-          Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
-        },
+        headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
       }
     );
 
@@ -38,15 +40,16 @@ router.post("/", async (req, res) => {
 
     console.log("📘 Estado del pago:", payment.status);
 
-    // obtener preferenceId desde la respuesta
-    const preferenceId = payment.order?.id;
+    // Obtener preferenceId desde la respuesta
+    const preferenceId =
+      payment.order?.id || payment.additional_info?.items?.[0]?.id;
 
     if (!preferenceId) {
       console.log("⚠️ No se encontró preferenceId en el pago");
       return res.status(200).send("NO PREFERENCE ID");
     }
 
-    // buscar la orden usando el preferenceId
+    // Buscar la orden con el mismo preferenceId
     const order = await Order.findOne({ preferenceId });
 
     if (!order) {
@@ -63,9 +66,11 @@ router.post("/", async (req, res) => {
 
       console.log("💰 Pedido marcado como PAGADO:", order._id);
 
-      // actualizar inventario
+      // Actualizar inventario
       for (const item of order.items) {
-        const product = await Product.findById(item._id);
+        const productId = item.id || item._id;
+
+        const product = await Product.findById(productId);
         if (product) {
           product.sold += item.quantity;
           product.stock = Math.max(product.stock - item.quantity, 0);
@@ -73,7 +78,7 @@ router.post("/", async (req, res) => {
         }
       }
 
-      // asociar pedido al usuario
+      // Asociar compra al usuario
       const user = await User.findOne({ email: order.email });
 
       if (user) {
