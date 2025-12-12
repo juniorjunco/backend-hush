@@ -38,9 +38,11 @@ router.post("/create", verifyToken, async (req, res) => {
    ---------------------------------------------------- */
 router.get("/my-orders", verifyToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
-    const orders = await Order.find({ user: userId }).sort({ createdAt: -1 });
+    const orders = await Order.find({
+      user: userId,
+    }).sort({ createdAt: -1 });
 
     res.json(orders);
   } catch (error) {
@@ -48,6 +50,7 @@ router.get("/my-orders", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Error al obtener pedidos del usuario" });
   }
 });
+
 
 /* ----------------------------------------------------
    🔵 3. ACTUALIZAR ESTADO DE LA ORDEN (ADMIN / WEBHOOK)
