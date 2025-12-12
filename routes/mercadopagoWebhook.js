@@ -51,12 +51,13 @@ router.post("/", async (req, res) => {
     /** -----------------------------------------
      * 🆔 OBTENER orderId DESDE METADATA
      * ----------------------------------------- */
-    const orderId = payment.metadata?.orderId;
+   const orderId = payment.external_reference;
 
-    if (!orderId) {
-      console.log("⚠️ No orderId en metadata");
-      return res.status(200).send("NO ORDER ID");
-    }
+if (!orderId) {
+  console.log("⚠️ No external_reference (orderId)");
+  return res.status(200).send("NO ORDER ID");
+}
+
 
     const order = await Order.findById(orderId);
 

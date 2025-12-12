@@ -13,6 +13,7 @@ router.post("/create_preference", async (req, res) => {
   try {
     const { items, email, orderId } = req.body;
 
+    // 🔎 Validaciones
     if (!items || items.length === 0) {
       return res.status(400).json({ error: "No hay productos en el carrito." });
     }
@@ -26,7 +27,7 @@ router.post("/create_preference", async (req, res) => {
       return res.status(404).json({ error: "Orden no encontrada." });
     }
 
-    // Item de envío fijo
+    // 🚚 Envío fijo
     const shippingItem = {
       id: "shipping",
       title: "Costo de envío",
@@ -35,7 +36,7 @@ router.post("/create_preference", async (req, res) => {
       unit_price: 9000,
     };
 
-    // Crear preferencia con la nueva SDK
+    // 🧾 Crear preferencia
     const preference = await new Preference(client).create({
       body: {
         items: [
@@ -56,6 +57,9 @@ router.post("/create_preference", async (req, res) => {
           excluded_payment_types: [{ id: "ticket" }],
         },
 
+        // 🔥 CLAVE: usar external_reference
+        external_reference: orderId,
+
         back_urls: {
           success: `${process.env.FRONTEND_URL}/success?orderId=${orderId}`,
           failure: `${process.env.FRONTEND_URL}/failure?orderId=${orderId}`,
@@ -64,19 +68,14 @@ router.post("/create_preference", async (req, res) => {
 
         auto_return: "approved",
 
-        metadata: {
-          orderId,
-          products: items.map((p) => p._id),
-        },
-
         notification_url: `${process.env.BACKEND_URL}/api/mercadopago/webhook`,
       },
     });
 
-    // ❗ LA SDK NUEVA DEVUELVE EL ID AQUÍ:
+    // 🆔 ID real de la preferencia
     const preferenceId = preference.id;
 
-    // Guardar preferencia en la orden
+    // 💾 Guardar preferencia en la orden
     order.preferenceId = preferenceId;
     await order.save();
 
@@ -84,7 +83,7 @@ router.post("/create_preference", async (req, res) => {
 
   } catch (err) {
     console.error("❌ Error MercadoPago:", err);
-    res.status(500).json({ error: "Error al crear la preferencia." });
+    return res.status(500).json({ error: "Error al crear la preferencia." });
   }
 });
 
