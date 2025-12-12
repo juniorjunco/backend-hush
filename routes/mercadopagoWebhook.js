@@ -32,18 +32,20 @@ router.post("/", async (req, res) => {
 
     console.log("📘 Estado del pago:", payment.status);
 
-    // ✅ OBTENER preference_id REAL
-    const preferenceId = payment.metadata?.preference_id;
+    /** -----------------------------------------
+     * 🆕 OBTENER orderId DESDE METADATA (correcto)
+     * ----------------------------------------- */
+    const orderId = payment.metadata?.orderId;
 
-    if (!preferenceId) {
-      console.log("⚠️ No preference_id en metadata");
-      return res.status(200).send("NO PREFERENCE ID");
+    if (!orderId) {
+      console.log("⚠️ No orderId en metadata");
+      return res.status(200).send("NO ORDER ID");
     }
 
-    const order = await Order.findOne({ preferenceId });
+    const order = await Order.findById(orderId);
 
     if (!order) {
-      console.log("⚠️ Orden no encontrada con ese preferenceId");
+      console.log("⚠️ Orden no encontrada");
       return res.status(200).send("ORDER NOT FOUND");
     }
 
@@ -54,9 +56,9 @@ router.post("/", async (req, res) => {
       order.status = "Pagado";
       await order.save();
 
-      console.log("💰 Pedido marcado como PAGADO:", order._id);
+      console.log(`💰 Pedido ${order._id} marcado como PAGADO`);
 
-      // 🔥 Actualizar inventario correctamente
+      // 🔥 Actualizar inventario
       for (const item of order.items) {
         const product = await Product.findById(item._id);
         if (product) {
@@ -66,7 +68,7 @@ router.post("/", async (req, res) => {
         }
       }
 
-      // Asociar compra con el usuario
+      // 👤 Asociar compra al usuario
       const user = await User.findOne({ email: order.email });
 
       if (user && !user.orders.includes(order._id)) {
@@ -88,6 +90,7 @@ router.post("/", async (req, res) => {
     }
 
     return res.status(200).send("OK");
+
   } catch (error) {
     console.error("❌ Error en webhook:", error.message);
     return res.status(200).send("OK");
