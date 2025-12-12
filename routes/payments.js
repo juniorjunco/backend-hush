@@ -26,7 +26,6 @@ router.post("/create_preference", async (req, res) => {
       return res.status(404).json({ error: "Orden no encontrada." });
     }
 
-    // Agregar el costo de envío como ítem adicional
     const shippingItem = {
       title: "Costo de envío",
       quantity: 1,
@@ -45,7 +44,7 @@ router.post("/create_preference", async (req, res) => {
             currency_id: "COP",
             unit_price: Number(product.price),
           })),
-          shippingItem, // 👈 Agregado correctamente
+          shippingItem,
         ],
 
         payer: { email },
@@ -67,11 +66,11 @@ router.post("/create_preference", async (req, res) => {
       },
     });
 
-    // ⛔ CORRECCIÓN CRÍTICA AQUÍ
-    order.preferenceId = preference.body.id;
+    // 🔥 SDK Nueva —> Úsalo así
+    order.preferenceId = preference.id;
     await order.save();
 
-    return res.json({ id: preference.body.id });
+    return res.json({ id: preference.id });
 
   } catch (err) {
     console.error("❌ Error MercadoPago:", err);
