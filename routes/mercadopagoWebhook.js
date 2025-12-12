@@ -12,19 +12,35 @@ router.post("/", async (req, res) => {
 
     console.log("📥 Webhook recibido:", JSON.stringify(data, null, 2));
 
-    const paymentId =
-      data?.data?.id ||
-      data?.resource?.split("/").pop() ||
-      null;
+    /** -----------------------------------------
+     * ❌ IGNORAR merchant_order (MUY IMPORTANTE)
+     * ----------------------------------------- */
+    if (data.topic === "merchant_order") {
+      console.log("ℹ️ merchant_order ignorado");
+      return res.status(200).send("OK");
+    }
 
-    if (!paymentId) return res.status(200).send("NO PAYMENT ID");
+    /** -----------------------------------------
+     * 🔎 OBTENER paymentId
+     * ----------------------------------------- */
+    const paymentId = data?.data?.id;
+
+    if (!paymentId) {
+      console.log("⚠️ No paymentId");
+      return res.status(200).send("NO PAYMENT ID");
+    }
 
     console.log("🔎 Consultando pago:", paymentId);
 
+    /** -----------------------------------------
+     * 📡 CONSULTAR PAGO A MERCADO PAGO
+     * ----------------------------------------- */
     const mpResponse = await axios.get(
       `https://api.mercadopago.com/v1/payments/${paymentId}`,
       {
-        headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
+        headers: {
+          Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+        },
       }
     );
 
@@ -33,7 +49,7 @@ router.post("/", async (req, res) => {
     console.log("📘 Estado del pago:", payment.status);
 
     /** -----------------------------------------
-     * 🆕 OBTENER orderId DESDE METADATA (correcto)
+     * 🆔 OBTENER orderId DESDE METADATA
      * ----------------------------------------- */
     const orderId = payment.metadata?.orderId;
 
@@ -45,7 +61,7 @@ router.post("/", async (req, res) => {
     const order = await Order.findById(orderId);
 
     if (!order) {
-      console.log("⚠️ Orden no encontrada");
+      console.log("⚠️ Orden no encontrada:", orderId);
       return res.status(200).send("ORDER NOT FOUND");
     }
 
@@ -53,27 +69,31 @@ router.post("/", async (req, res) => {
      * 🟢 PAGO APROBADO
      * ----------------------------------------- */
     if (payment.status === "approved") {
-      order.status = "Pagado";
-      await order.save();
+      if (order.status !== "Pagado") {
+        order.status = "Pagado";
+        order.paymentId = paymentId;
+        await order.save();
 
-      console.log(`💰 Pedido ${order._id} marcado como PAGADO`);
+        console.log(`💰 Pedido ${order._id} marcado como PAGADO`);
 
-      // 🔥 Actualizar inventario
-      for (const item of order.items) {
-        const product = await Product.findById(item._id);
-        if (product) {
-          product.sold += item.quantity;
-          product.stock = Math.max(product.stock - item.quantity, 0);
-          await product.save();
+        /** 🔥 ACTUALIZAR INVENTARIO */
+        for (const item of order.items) {
+          const product = await Product.findById(item.productId || item._id);
+
+          if (product) {
+            product.sold += item.quantity;
+            product.stock = Math.max(product.stock - item.quantity, 0);
+            await product.save();
+          }
         }
-      }
 
-      // 👤 Asociar compra al usuario
-      const user = await User.findOne({ email: order.email });
+        /** 👤 ASOCIAR ORDEN AL USUARIO */
+        const user = await User.findOne({ email: order.email });
 
-      if (user && !user.orders.includes(order._id)) {
-        user.orders.push(order._id);
-        await user.save();
+        if (user && !user.orders.includes(order._id)) {
+          user.orders.push(order._id);
+          await user.save();
+        }
       }
     }
 
@@ -84,7 +104,10 @@ router.post("/", async (req, res) => {
     }
 
     /** 🟡 PENDIENTE */
-    else if (payment.status === "pending" || payment.status === "in_process") {
+    else if (
+      payment.status === "pending" ||
+      payment.status === "in_process"
+    ) {
       order.status = "Pendiente";
       await order.save();
     }
@@ -92,8 +115,8 @@ router.post("/", async (req, res) => {
     return res.status(200).send("OK");
 
   } catch (error) {
-    console.error("❌ Error en webhook:", error.message);
-    return res.status(200).send("OK");
+    console.error("❌ Error en webhook:", error.response?.data || error.message);
+    return res.status(200).send("OK"); // MP exige 200
   }
 });
 
