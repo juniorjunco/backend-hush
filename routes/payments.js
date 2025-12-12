@@ -13,7 +13,6 @@ router.post("/create_preference", async (req, res) => {
   try {
     const { items, email, orderId } = req.body;
 
-    // Validaciones
     if (!items || items.length === 0) {
       return res.status(400).json({ error: "No hay productos en el carrito." });
     }
@@ -27,7 +26,7 @@ router.post("/create_preference", async (req, res) => {
       return res.status(404).json({ error: "Orden no encontrada." });
     }
 
-    // Ítem de envío
+    // Item de envío fijo
     const shippingItem = {
       id: "shipping",
       title: "Costo de envío",
@@ -36,14 +35,13 @@ router.post("/create_preference", async (req, res) => {
       unit_price: 9000,
     };
 
-    // Crear preferencia MercadoPago
+    // Crear preferencia con la nueva SDK
     const preference = await new Preference(client).create({
       body: {
         items: [
           ...items.map((product) => ({
-            id: `prod-${product._id}`,   // ID usado para MP, no para Mongo
+            id: `prod-${product._id}`,
             title: product.name,
-            description: product.description || "Producto",
             quantity: product.quantity,
             currency_id: "COP",
             unit_price: Number(product.price),
@@ -66,21 +64,23 @@ router.post("/create_preference", async (req, res) => {
 
         auto_return: "approved",
 
-        // 🔥 Metadatos IMPORTANTES
         metadata: {
           orderId,
-          products: items.map((p) => p._id), // IDs reales de MongoDB
+          products: items.map((p) => p._id),
         },
 
         notification_url: `${process.env.BACKEND_URL}/api/mercadopago/webhook`,
       },
     });
 
-    // 📌 El ID REAL de la preferencia está aquí
-    order.preferenceId = preference.body.id;
+    // ❗ LA SDK NUEVA DEVUELVE EL ID AQUÍ:
+    const preferenceId = preference.id;
+
+    // Guardar preferencia en la orden
+    order.preferenceId = preferenceId;
     await order.save();
 
-    return res.json({ id: preference.body.id });
+    return res.json({ id: preferenceId });
 
   } catch (err) {
     console.error("❌ Error MercadoPago:", err);
