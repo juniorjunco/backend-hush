@@ -13,6 +13,7 @@ router.post("/create_preference", async (req, res) => {
   try {
     const { items, email, orderId } = req.body;
 
+    // Validaciones
     if (!items || items.length === 0) {
       return res.status(400).json({ error: "No hay productos en el carrito." });
     }
@@ -26,18 +27,21 @@ router.post("/create_preference", async (req, res) => {
       return res.status(404).json({ error: "Orden no encontrada." });
     }
 
+    // Ítem de envío
     const shippingItem = {
+      id: "shipping",
       title: "Costo de envío",
       quantity: 1,
       currency_id: "COP",
       unit_price: 9000,
     };
 
+    // Crear preferencia MercadoPago
     const preference = await new Preference(client).create({
       body: {
         items: [
           ...items.map((product) => ({
-            id: `prod-${product._id}`,
+            id: `prod-${product._id}`,   // ID usado para MP, no para Mongo
             title: product.name,
             description: product.description || "Producto",
             quantity: product.quantity,
@@ -62,15 +66,21 @@ router.post("/create_preference", async (req, res) => {
 
         auto_return: "approved",
 
+        // 🔥 Metadatos IMPORTANTES
+        metadata: {
+          orderId,
+          products: items.map((p) => p._id), // IDs reales de MongoDB
+        },
+
         notification_url: `${process.env.BACKEND_URL}/api/mercadopago/webhook`,
       },
     });
 
-    // 🔥 SDK Nueva —> Úsalo así
-    order.preferenceId = preference.id;
+    // 📌 El ID REAL de la preferencia está aquí
+    order.preferenceId = preference.body.id;
     await order.save();
 
-    return res.json({ id: preference.id });
+    return res.json({ id: preference.body.id });
 
   } catch (err) {
     console.error("❌ Error MercadoPago:", err);

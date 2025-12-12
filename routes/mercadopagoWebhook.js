@@ -6,29 +6,21 @@ import User from "../models/User.js";
 
 const router = express.Router();
 
-/**
- * 🔔 WEBHOOK MERCADO PAGO
- */
 router.post("/", async (req, res) => {
   try {
     const data = req.body;
 
-    console.log("📥 Webhook MercadoPago recibido:", JSON.stringify(data, null, 2));
+    console.log("📥 Webhook recibido:", JSON.stringify(data, null, 2));
 
-    // Obtener el ID del pago desde diferentes estructuras
     const paymentId =
       data?.data?.id ||
-      data?.resource?.split("/").pop() || // fallback cuando envían "resource"
+      data?.resource?.split("/").pop() ||
       null;
 
-    if (!paymentId) {
-      console.log("⚠️ Webhook sin payment ID");
-      return res.status(200).send("NO PAYMENT ID");
-    }
+    if (!paymentId) return res.status(200).send("NO PAYMENT ID");
 
     console.log("🔎 Consultando pago:", paymentId);
 
-    // Consultar pago real en Mercado Pago
     const mpResponse = await axios.get(
       `https://api.mercadopago.com/v1/payments/${paymentId}`,
       {
@@ -40,20 +32,18 @@ router.post("/", async (req, res) => {
 
     console.log("📘 Estado del pago:", payment.status);
 
-    // Obtener preferenceId desde la respuesta
-    const preferenceId =
-      payment.order?.id || payment.additional_info?.items?.[0]?.id;
+    // ✅ OBTENER preference_id REAL
+    const preferenceId = payment.metadata?.preference_id;
 
     if (!preferenceId) {
-      console.log("⚠️ No se encontró preferenceId en el pago");
+      console.log("⚠️ No preference_id en metadata");
       return res.status(200).send("NO PREFERENCE ID");
     }
 
-    // Buscar la orden con el mismo preferenceId
     const order = await Order.findOne({ preferenceId });
 
     if (!order) {
-      console.log("⚠️ No existe una orden asociada a preferenceId:", preferenceId);
+      console.log("⚠️ Orden no encontrada con ese preferenceId");
       return res.status(200).send("ORDER NOT FOUND");
     }
 
@@ -66,11 +56,9 @@ router.post("/", async (req, res) => {
 
       console.log("💰 Pedido marcado como PAGADO:", order._id);
 
-      // Actualizar inventario
+      // 🔥 Actualizar inventario correctamente
       for (const item of order.items) {
-        const productId = item.id || item._id;
-
-        const product = await Product.findById(productId);
+        const product = await Product.findById(item._id);
         if (product) {
           product.sold += item.quantity;
           product.stock = Math.max(product.stock - item.quantity, 0);
@@ -78,28 +66,22 @@ router.post("/", async (req, res) => {
         }
       }
 
-      // Asociar compra al usuario
+      // Asociar compra con el usuario
       const user = await User.findOne({ email: order.email });
 
-      if (user) {
-        if (!user.orders.includes(order._id)) {
-          user.orders.push(order._id);
-          await user.save();
-        }
+      if (user && !user.orders.includes(order._id)) {
+        user.orders.push(order._id);
+        await user.save();
       }
     }
 
-    /** -----------------------------------------
-     * 🔴 RECHAZADO
-     * ----------------------------------------- */
+    /** 🔴 RECHAZADO */
     else if (payment.status === "rejected") {
       order.status = "Rechazado";
       await order.save();
     }
 
-    /** -----------------------------------------
-     * 🟡 PENDIENTE
-     * ----------------------------------------- */
+    /** 🟡 PENDIENTE */
     else if (payment.status === "pending" || payment.status === "in_process") {
       order.status = "Pendiente";
       await order.save();
