@@ -1,13 +1,15 @@
-// config/db.js
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const connectDB = async () => {
+  if (mongoose.connections[0].readyState) {
+    return;
+  }
+
   try {
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('MongoDB connected');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    process.exit(1);
+    console.log("MongoDB conectado en Vercel");
+  } catch (err) {
+    console.error("Error Mongo:", err);
   }
 };
 
