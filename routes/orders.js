@@ -1,28 +1,32 @@
-// routes/orders.js
 import express from "express";
 import Order from "../models/Order.js";
-import verifyToken from "../middleware/authMiddleware.js";
+import authMiddleware from "../middleware/authMiddleware.js";
+import isAdmin from "../middleware/isAdmin.js";
 
 const router = express.Router();
 
 /* ----------------------------------------------------
-   🟢 1. CREAR ORDEN PREVIA AL PAGO (OBLIGATORIO)
+   🟢 1. CREAR ORDEN PREVIA AL PAGO (USUARIO)
    ---------------------------------------------------- */
-router.post("/create", verifyToken, async (req, res) => {
+router.post("/create", authMiddleware, async (req, res) => {
   try {
     const { items, total, address } = req.body;
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({ error: "La orden no tiene productos" });
+    }
 
     const invoiceNumber = "INV-" + Date.now();
 
     const newOrder = await Order.create({
       invoice: invoiceNumber,
-      user: req.user.userId,    // 🔥 correcto
-      email: req.user.email,    // 🔥 ya existe
+      user: req.user.userId,
+      email: req.user.email,
       items,
       amount: total,
       address,
       status: "Pendiente",
-      preferenceId: null
+      preferenceId: null,
     });
 
     res.json(newOrder);
@@ -32,69 +36,72 @@ router.post("/create", verifyToken, async (req, res) => {
   }
 });
 
-
 /* ----------------------------------------------------
-   🟡 2. OBTENER LOS PEDIDOS DEL USUARIO AUTENTICADO
+   🟡 2. PEDIDOS DEL USUARIO AUTENTICADO
    ---------------------------------------------------- */
-router.get("/my-orders", verifyToken, async (req, res) => {
+router.get("/my-orders", authMiddleware, async (req, res) => {
   try {
-    const userId = req.user.userId;
-
     const orders = await Order.find({
-      user: userId,
+      user: req.user.userId,
     }).sort({ createdAt: -1 });
 
     res.json(orders);
   } catch (error) {
     console.error("❌ Error al obtener pedidos:", error);
-    res.status(500).json({ error: "Error al obtener pedidos del usuario" });
+    res
+      .status(500)
+      .json({ error: "Error al obtener pedidos del usuario" });
   }
 });
 
-
 /* ----------------------------------------------------
-   🔵 3. ACTUALIZAR ESTADO DE LA ORDEN (ADMIN / WEBHOOK)
+   🔵 3. CONFIRMAR / ACTUALIZAR ORDEN (WEBHOOK / ADMIN)
    ---------------------------------------------------- */
 router.post("/confirm", async (req, res) => {
   try {
     const { orderId, status } = req.body;
 
+    if (!orderId || !status) {
+      return res.status(400).json({ error: "Datos incompletos" });
+    }
+
     const order = await Order.findById(orderId);
-    if (!order) return res.status(404).json({ error: "Orden no encontrada" });
+    if (!order) {
+      return res.status(404).json({ error: "Orden no encontrada" });
+    }
 
     order.status = status;
     await order.save();
 
-    res.json({ message: "Orden actualizada correctamente", order });
+    res.json({
+      message: "Orden actualizada correctamente",
+      order,
+    });
   } catch (error) {
     console.error("❌ Error al actualizar orden:", error);
     res.status(500).json({ error: "Error en el servidor" });
   }
 });
 
-
 /* ----------------------------------------------------
-   🔴 4. OBTENER TODOS LOS PEDIDOS (ADMIN)
+   🔴 4. TODOS LOS PEDIDOS PAGADOS (ADMIN)
    ---------------------------------------------------- */
-router.get("/admin", verifyToken, async (req, res) => {
-  try {
-    // 🔐 opcional pero recomendado: validar admin
-    if (req.user.role !== "admin") {
-      return res.status(403).json({ error: "Acceso denegado" });
+router.get(
+  "/admin",
+  authMiddleware,
+  isAdmin,
+  async (req, res) => {
+    try {
+      const orders = await Order.find({ status: "Pagado" })
+        .populate("user", "email name")
+        .sort({ createdAt: -1 });
+
+      res.json(orders);
+    } catch (error) {
+      console.error("❌ Error obteniendo pedidos admin:", error);
+      res.status(500).json({ error: "Error al obtener pedidos" });
     }
-
-    const orders = await Order.find({
-      status: "Pagado", // 👈 solo pedidos ya pagados
-    })
-      .populate("user", "email name")
-      .sort({ createdAt: -1 });
-
-    res.json(orders);
-  } catch (error) {
-    console.error("❌ Error obteniendo pedidos admin:", error);
-    res.status(500).json({ error: "Error al obtener pedidos" });
   }
-});
-
+);
 
 export default router;

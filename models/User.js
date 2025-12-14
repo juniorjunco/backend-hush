@@ -34,11 +34,18 @@ const userSchema = new mongoose.Schema(
       country: String,
     },
 
+    /** 🆕 ROL DEL USUARIO */
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+
     /** 🆕 PEDIDOS DEL USUARIO */
     orders: {
       type: [mongoose.Schema.Types.ObjectId],
       ref: "Order",
-      default: [], // ← ESTO evita el error del webhook
+      default: [],
     },
   },
   { timestamps: true }
