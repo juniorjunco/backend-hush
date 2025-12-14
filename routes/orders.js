@@ -72,4 +72,29 @@ router.post("/confirm", async (req, res) => {
   }
 });
 
+
+/* ----------------------------------------------------
+   🔴 4. OBTENER TODOS LOS PEDIDOS (ADMIN)
+   ---------------------------------------------------- */
+router.get("/admin", verifyToken, async (req, res) => {
+  try {
+    // 🔐 opcional pero recomendado: validar admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Acceso denegado" });
+    }
+
+    const orders = await Order.find({
+      status: "Pagado", // 👈 solo pedidos ya pagados
+    })
+      .populate("user", "email name")
+      .sort({ createdAt: -1 });
+
+    res.json(orders);
+  } catch (error) {
+    console.error("❌ Error obteniendo pedidos admin:", error);
+    res.status(500).json({ error: "Error al obtener pedidos" });
+  }
+});
+
+
 export default router;
