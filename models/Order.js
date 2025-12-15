@@ -1,29 +1,54 @@
 import mongoose from "mongoose";
 
-const orderSchema = new mongoose.Schema({
-  invoice: { type: String, required: true, unique: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  email: { type: String, required: true },
+const orderSchema = new mongoose.Schema(
+  {
+    invoice: String,
 
-  items: [orderItemSchema],
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
 
-  amount: { type: Number, required: true },
-  status: { type: String, default: "Pendiente" },
-  preferenceId: { type: String },
+    email: String,
 
-  // 🔥 DIRECCIÓN CONGELADA DE LA ORDEN
-  shippingAddress: {
-    street: String,
-    city: String,
-    state: String,
-    zip: String,
-    country: String,
+    items: [
+      {
+        name: String,
+        price: Number,
+        quantity: Number,
+        talla: String,
+      },
+    ],
+
+    amount: Number,
+
+    address: {
+      street: String,
+      city: String,
+      state: String,
+      zip: String,
+      country: String,
+    },
+
+    status: {
+      type: String,
+      enum: ["Pendiente", "Pagado", "Enviado", "Cancelado"],
+      default: "Pendiente",
+    },
+
+    trackingNumber: {
+      type: String,
+      default: null,
+    },
+
+    shippedAt: {
+      type: Date,
+      default: null,
+    },
+
+    preferenceId: String,
   },
+  { timestamps: true }
+);
 
-  createdAt: { type: Date, default: Date.now },
-});
-
-
-
-const Order = mongoose.model("Order", orderSchema);
-export default Order;
+export default mongoose.model("Order", orderSchema);

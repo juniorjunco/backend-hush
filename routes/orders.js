@@ -2,6 +2,7 @@ import express from "express";
 import Order from "../models/Order.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import isAdmin from "../middleware/isAdmin.js";
+import { sendShippingEmail } from "../utils/sendEmail.js";
 
 const router = express.Router();
 
@@ -115,6 +116,44 @@ router.get(
     } catch (error) {
       console.error("❌ Error obteniendo pedidos admin:", error);
       res.status(500).json({ error: "Error al obtener pedidos" });
+    }
+  }
+);
+
+router.put(
+  "/admin/ship/:id",
+  authMiddleware,
+  isAdmin,
+  async (req, res) => {
+    try {
+      const { trackingNumber } = req.body;
+
+      if (!trackingNumber) {
+        return res.status(400).json({ error: "Tracking requerido" });
+      }
+
+      const order = await Order.findById(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Pedido no encontrado" });
+      }
+
+      order.status = "Enviado";
+      order.trackingNumber = trackingNumber;
+      order.shippedAt = new Date();
+
+      await order.save();
+
+      // 📧 Email automático
+      await sendShippingEmail({
+        to: order.email,
+        invoice: order.invoice,
+        tracking: trackingNumber,
+      });
+
+      res.json({ message: "Pedido enviado correctamente", order });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Error enviando pedido" });
     }
   }
 );
