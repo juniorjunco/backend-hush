@@ -16,25 +16,40 @@ router.post("/create", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "La orden no tiene productos" });
     }
 
+    if (!address) {
+      return res.status(400).json({ error: "Dirección de envío requerida" });
+    }
+
     const invoiceNumber = "INV-" + Date.now();
 
     const newOrder = await Order.create({
       invoice: invoiceNumber,
       user: req.user.userId,
       email: req.user.email,
+
       items,
       amount: total,
-      address,
+
+      // 🔥 Dirección REAL del envío (congelada en la orden)
+      shippingAddress: {
+        street: address.street || "",
+        city: address.city || "",
+        state: address.state || "",
+        zip: address.zip || "",
+        country: address.country || "",
+      },
+
       status: "Pendiente",
       preferenceId: null,
     });
 
-    res.json(newOrder);
+    res.status(201).json(newOrder);
   } catch (error) {
     console.error("❌ Error creando la orden:", error);
     res.status(500).json({ error: "Error creando la orden" });
   }
 });
+
 
 /* ----------------------------------------------------
    🟡 2. PEDIDOS DEL USUARIO AUTENTICADO
