@@ -8,7 +8,7 @@ const router = express.Router();
 
 /* ----------------------------------------------------
    🟢 1. CREAR ORDEN PREVIA AL PAGO (USUARIO)
-   ---------------------------------------------------- */
+---------------------------------------------------- */
 router.post("/create", authMiddleware, async (req, res) => {
   try {
     const { items, total, address } = req.body;
@@ -17,27 +17,41 @@ router.post("/create", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "La orden no tiene productos" });
     }
 
-    if (!address) {
-      return res.status(400).json({ error: "Dirección de envío requerida" });
+    if (
+      !address ||
+      !address.street ||
+      !address.city ||
+      !address.state ||
+      !address.zip ||
+      !address.country
+    ) {
+      return res.status(400).json({ error: "Dirección de envío incompleta" });
     }
 
-    const invoiceNumber = "INV-" + Date.now();
+    const invoiceNumber = `INV-${Date.now()}`;
+
+    const formattedItems = items.map((item) => ({
+      product: item._id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      talla: item.talla,
+    }));
 
     const newOrder = await Order.create({
       invoice: invoiceNumber,
       user: req.user.userId,
       email: req.user.email,
 
-      items,
+      items: formattedItems,
       amount: total,
 
-      // 🔥 Dirección REAL del envío (congelada en la orden)
       shippingAddress: {
-        street: address.street || "",
-        city: address.city || "",
-        state: address.state || "",
-        zip: address.zip || "",
-        country: address.country || "",
+        street: address.street,
+        city: address.city,
+        state: address.state,
+        zip: address.zip,
+        country: address.country,
       },
 
       status: "Pendiente",
@@ -51,34 +65,33 @@ router.post("/create", authMiddleware, async (req, res) => {
   }
 });
 
-
 /* ----------------------------------------------------
    🟡 2. PEDIDOS DEL USUARIO AUTENTICADO
-   ---------------------------------------------------- */
+---------------------------------------------------- */
 router.get("/my-orders", authMiddleware, async (req, res) => {
   try {
-    const orders = await Order.find({
-      user: req.user.userId,
-    }).sort({ createdAt: -1 });
+    const orders = await Order.find({ user: req.user.userId }).sort({
+      createdAt: -1,
+    });
 
     res.json(orders);
   } catch (error) {
     console.error("❌ Error al obtener pedidos:", error);
-    res
-      .status(500)
-      .json({ error: "Error al obtener pedidos del usuario" });
+    res.status(500).json({ error: "Error al obtener pedidos del usuario" });
   }
 });
 
 /* ----------------------------------------------------
-   🔵 3. CONFIRMAR / ACTUALIZAR ORDEN (WEBHOOK / ADMIN)
-   ---------------------------------------------------- */
+   🔵 3. CONFIRMAR ORDEN (WEBHOOK / ADMIN)
+---------------------------------------------------- */
 router.post("/confirm", async (req, res) => {
   try {
     const { orderId, status } = req.body;
 
-    if (!orderId || !status) {
-      return res.status(400).json({ error: "Datos incompletos" });
+    const allowedStatus = ["Pagado", "Cancelado"];
+
+    if (!orderId || !allowedStatus.includes(status)) {
+      return res.status(400).json({ error: "Estado inválido" });
     }
 
     const order = await Order.findById(orderId);
@@ -89,73 +102,61 @@ router.post("/confirm", async (req, res) => {
     order.status = status;
     await order.save();
 
-    res.json({
-      message: "Orden actualizada correctamente",
-      order,
-    });
+    res.json({ message: "Orden actualizada", order });
   } catch (error) {
-    console.error("❌ Error al actualizar orden:", error);
-    res.status(500).json({ error: "Error en el servidor" });
+    console.error("❌ Error al confirmar orden:", error);
+    res.status(500).json({ error: "Error del servidor" });
   }
 });
 
 /* ----------------------------------------------------
-   🔴 4. TODOS LOS PEDIDOS PAGADOS (ADMIN)
-   ---------------------------------------------------- */
-router.get(
-  "/admin",
-  authMiddleware,
-  isAdmin,
-  async (req, res) => {
-    try {
-      const orders = await Order.find({ status: "Pagado" })
-        .populate("user", "email name")
-        .sort({ createdAt: -1 });
+   🔴 4. PEDIDOS PAGADOS (ADMIN)
+---------------------------------------------------- */
+router.get("/admin", authMiddleware, isAdmin, async (req, res) => {
+  try {
+    const orders = await Order.find({ status: "Pagado" })
+      .sort({ createdAt: -1 });
 
-      res.json(orders);
-    } catch (error) {
-      console.error("❌ Error obteniendo pedidos admin:", error);
-      res.status(500).json({ error: "Error al obtener pedidos" });
-    }
+    res.json(orders);
+  } catch (error) {
+    console.error("❌ Error obteniendo pedidos admin:", error);
+    res.status(500).json({ error: "Error al obtener pedidos" });
   }
-);
+});
 
-router.put(
-  "/admin/ship/:id",
-  authMiddleware,
-  isAdmin,
-  async (req, res) => {
-    try {
-      const { trackingNumber } = req.body;
+/* ----------------------------------------------------
+   🚚 5. MARCAR COMO ENVIADO + EMAIL
+---------------------------------------------------- */
+router.put("/admin/ship/:id", authMiddleware, isAdmin, async (req, res) => {
+  try {
+    const { trackingNumber } = req.body;
 
-      if (!trackingNumber) {
-        return res.status(400).json({ error: "Tracking requerido" });
-      }
-
-      const order = await Order.findById(req.params.id);
-      if (!order) {
-        return res.status(404).json({ error: "Pedido no encontrado" });
-      }
-
-      order.status = "Enviado";
-      order.trackingNumber = trackingNumber;
-      order.shippedAt = new Date();
-
-      await order.save();
-
-      // 📧 Email automático
-      await sendShippingEmail({
-        to: order.email,
-        invoice: order.invoice,
-        tracking: trackingNumber,
-      });
-
-      res.json({ message: "Pedido enviado correctamente", order });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Error enviando pedido" });
+    if (!trackingNumber) {
+      return res.status(400).json({ error: "Tracking requerido" });
     }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ error: "Pedido no encontrado" });
+    }
+
+    order.status = "Enviado";
+    order.trackingNumber = trackingNumber;
+    order.shippedAt = new Date();
+
+    await order.save();
+
+    await sendShippingEmail({
+      to: order.email,
+      invoice: order.invoice,
+      tracking: trackingNumber,
+    });
+
+    res.json({ message: "Pedido enviado correctamente", order });
+  } catch (error) {
+    console.error("❌ Error enviando pedido:", error);
+    res.status(500).json({ error: "Error enviando pedido" });
   }
-);
+});
 
 export default router;
