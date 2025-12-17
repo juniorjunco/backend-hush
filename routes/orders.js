@@ -31,7 +31,7 @@ router.post("/create", authMiddleware, async (req, res) => {
     const invoiceNumber = `INV-${Date.now()}`;
 
     const formattedItems = items.map((item) => ({
-      product: item._id,
+     product: item.productId,
       name: item.name,
       price: item.price,
       quantity: item.quantity,
