@@ -30,13 +30,26 @@ router.post("/create", authMiddleware, async (req, res) => {
 
     const invoiceNumber = `INV-${Date.now()}`;
 
-    const formattedItems = items.map((item) => ({
-     product: item.productId,
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity,
-      talla: item.talla,
-    }));
+    const formattedItems = items.map((item) => {
+  const productId =
+    item.productId ||
+    item._id ||
+    item.id ||
+    item.product?._id;
+
+  if (!productId) {
+    throw new Error("Producto inválido en la orden");
+  }
+
+  return {
+    product: productId,
+    name: item.name,
+    price: item.price,
+    quantity: item.quantity,
+    talla: item.talla,
+  };
+});
+
 
     const newOrder = await Order.create({
       invoice: invoiceNumber,
@@ -86,12 +99,10 @@ router.get("/my-orders", authMiddleware, async (req, res) => {
 ---------------------------------------------------- */
 router.post("/confirm", async (req, res) => {
   try {
-    const { orderId, status } = req.body;
+    const { orderId } = req.body;
 
-    const allowedStatus = ["Pagado", "Cancelado"];
-
-    if (!orderId || !allowedStatus.includes(status)) {
-      return res.status(400).json({ error: "Estado inválido" });
+    if (!orderId) {
+      return res.status(400).json({ error: "orderId requerido" });
     }
 
     const order = await Order.findById(orderId);
@@ -99,15 +110,24 @@ router.post("/confirm", async (req, res) => {
       return res.status(404).json({ error: "Orden no encontrada" });
     }
 
-    order.status = status;
+    // 🛑 Evitar reconfirmar
+    if (order.status === "Pagado") {
+      return res.json({ message: "Orden ya confirmada", order });
+    }
+
+    order.status = "Pagado";
     await order.save();
 
-    res.json({ message: "Orden actualizada", order });
+    res.json({
+      message: "Orden confirmada como pagada",
+      order,
+    });
   } catch (error) {
     console.error("❌ Error al confirmar orden:", error);
     res.status(500).json({ error: "Error del servidor" });
   }
 });
+
 
 /* ----------------------------------------------------
    🔴 4. PEDIDOS PAGADOS (ADMIN)
