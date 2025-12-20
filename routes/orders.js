@@ -166,17 +166,23 @@ router.put("/admin/ship/:id", authMiddleware, isAdmin, async (req, res) => {
 
     await order.save();
 
+    // 📧 EMAIL CON IMÁGENES
     await sendShippingEmail({
       to: order.email,
       invoice: order.invoice,
       tracking: trackingNumber,
+      items: order.items, // 👈 CLAVE
     });
 
-    res.json({ message: "Pedido enviado correctamente", order });
+    res.json({
+      message: "Pedido enviado correctamente",
+      order,
+    });
   } catch (error) {
     console.error("❌ Error enviando pedido:", error);
     res.status(500).json({ error: "Error enviando pedido" });
   }
 });
+
 
 export default router;
