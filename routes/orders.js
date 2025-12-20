@@ -126,13 +126,18 @@ router.post("/confirm", async (req, res) => {
   }
 });
 
-
 /* ----------------------------------------------------
-   🔴 4. PEDIDOS PAGADOS (ADMIN)
+   🔴 4. PEDIDOS PAGADOS + ENVIADOS (ADMIN)
 ---------------------------------------------------- */
 router.get("/admin", authMiddleware, isAdmin, async (req, res) => {
   try {
-    const orders = await Order.find({ status: "Pagado" })
+    const orders = await Order.find({
+      status: { $in: ["Pagado", "Enviado"] },
+    })
+      .populate({
+        path: "items.product",
+        select: "imageUrl imageUrls",
+      })
       .sort({ createdAt: -1 });
 
     res.json(orders);
@@ -141,6 +146,7 @@ router.get("/admin", authMiddleware, isAdmin, async (req, res) => {
     res.status(500).json({ error: "Error al obtener pedidos" });
   }
 });
+
 
 /* ----------------------------------------------------
    🚚 5. MARCAR COMO ENVIADO + EMAIL
