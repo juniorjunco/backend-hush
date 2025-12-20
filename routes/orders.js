@@ -133,12 +133,7 @@ router.get("/admin", authMiddleware, isAdmin, async (req, res) => {
   try {
     const orders = await Order.find({
       status: { $in: ["Pagado", "Enviado"] },
-    })
-      .populate({
-        path: "items.product",
-        select: "imageUrl imageUrls",
-      })
-      .sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 });
 
     res.json(orders);
   } catch (error) {
@@ -146,6 +141,7 @@ router.get("/admin", authMiddleware, isAdmin, async (req, res) => {
     res.status(500).json({ error: "Error al obtener pedidos" });
   }
 });
+
 
 
 /* ----------------------------------------------------
