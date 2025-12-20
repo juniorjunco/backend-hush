@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import express from "express";
 import Order from "../models/Order.js";
 import authMiddleware from "../middleware/authMiddleware.js";
@@ -31,24 +32,19 @@ router.post("/create", authMiddleware, async (req, res) => {
     const invoiceNumber = `INV-${Date.now()}`;
 
     const formattedItems = items.map((item) => {
-  const productId =
-    item.productId ||
-    item._id ||
-    item.id ||
-    item.product?._id;
-
-  if (!productId) {
-    throw new Error("Producto inválido en la orden");
+  if (!mongoose.Types.ObjectId.isValid(item.productId)) {
+    throw new Error(`ID de producto inválido: ${item.productId}`);
   }
 
   return {
-    product: productId,
+    product: item.productId, // ✅ SOLO ObjectId real
     name: item.name,
     price: item.price,
     quantity: item.quantity,
     talla: item.talla,
   };
 });
+
 
 
     const newOrder = await Order.create({
