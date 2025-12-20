@@ -37,13 +37,15 @@ router.post("/create", authMiddleware, async (req, res) => {
   }
 
   return {
-    product: item.productId, // ✅ SOLO ObjectId real
+    product: item.productId,
     name: item.name,
     price: item.price,
     quantity: item.quantity,
     talla: item.talla,
+    image: item.image || null, // 👈 NUEVO
   };
 });
+
 
 
 
