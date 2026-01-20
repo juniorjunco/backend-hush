@@ -88,18 +88,7 @@ subCategory: {
       default: "Unisex",
     },
 
-    // 🔹 Filtro visual (OVERSIZE, BÁSICOS, TANK, BUZOS, etc.)
-   filtro: {
-  type: String,
-  enum: [
-    "OVERSIZED",
-    "BASICOS",
-    "TANK",
-    "BUZOS",
-    "TODOS",
-  ],
-  default: "TODOS",
-},
+   
 
     tallas: {
       type: [tallaSchema],
