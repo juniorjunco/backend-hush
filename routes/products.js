@@ -73,7 +73,19 @@ router.get("/:id", async (req, res) => {
 // ============================================================
 router.post("/", upload.array("images", 5), async (req, res) => {
   try {
-    const { name, price, category, genero, tallas, descripcion } = req.body;
+    const {
+      name,
+      price,
+      discountPrice,
+      category,
+      subCategory,
+      genero,
+      filtro,
+      tallas,
+      descripcion,
+      isNewIn,
+      isFeatured,
+    } = req.body;
 
     let parsedTallas = [];
     if (tallas) {
@@ -84,7 +96,6 @@ router.post("/", upload.array("images", 5), async (req, res) => {
       }
     }
 
-    // Guardar URLs de imágenes
     const imageUrls = req.files
       ? req.files.map((file) => ({
           url: file.path,
@@ -95,12 +106,17 @@ router.post("/", upload.array("images", 5), async (req, res) => {
     const newProduct = new Product({
       name,
       price,
+      discountPrice,
       category,
+      subCategory,   // ✅ AQUÍ ESTABA EL PROBLEMA
       genero,
+      filtro,
       tallas: parsedTallas,
       descripcion,
+      isNewIn,
+      isFeatured,
       imageUrls,
-      imageUrl: imageUrls[0] || null, // la principal es la primera
+      imageUrl: imageUrls[0] || null,
     });
 
     await newProduct.save();
@@ -110,6 +126,7 @@ router.post("/", upload.array("images", 5), async (req, res) => {
     res.status(500).json({ success: false, message: "Error al crear producto" });
   }
 });
+
 
 /* ============================================================
    🔹 EDITAR PRODUCTO
