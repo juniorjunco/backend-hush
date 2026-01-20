@@ -60,11 +60,26 @@ const productSchema = new mongoose.Schema(
     },
 
     // 🔹 Subcategoría o tipo específico de accesorio
-    subCategory: {
-      type: String,
-      enum: ["GORRAS", "GAFAS", "BOLSOS", "OTROS"],
-      default: "OTROS",
-    },
+subCategory: {
+  type: String,
+  enum: [
+    // ROPA
+    "OVERSIZED",
+    "BASICOS",
+    "TANK",
+    "BUZOS",
+
+    // ACCESORIOS
+    "GORRAS",
+    "GAFAS",
+    "BOLSOS",
+
+    // GENERAL
+    "OTROS",
+  ],
+  default: "OTROS",
+},
+
 
     // 🔹 Género
     genero: {
@@ -74,11 +89,17 @@ const productSchema = new mongoose.Schema(
     },
 
     // 🔹 Filtro visual (OVERSIZE, BÁSICOS, TANK, BUZOS, etc.)
-    filtro: {
-      type: String,
-      enum: ["OVERSIZE", "BÁSICOS", "TANK", "BUZOS", "TODOS", "OTRO"],
-      default: "OTRO",
-    },
+   filtro: {
+  type: String,
+  enum: [
+    "OVERSIZED",
+    "BASICOS",
+    "TANK",
+    "BUZOS",
+    "TODOS",
+  ],
+  default: "TODOS",
+},
 
     tallas: {
       type: [tallaSchema],
