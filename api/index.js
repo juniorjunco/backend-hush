@@ -18,6 +18,7 @@ await connectDB();
 // ⬇️ CORS
 app.use((req, res, next) => {
   const allowedOrigins = [
+    "https://www.hushcolombia.online",
     "https://hush-sigma.vercel.app",
     "https://admin-hush.vercel.app",
     "http://localhost:5173",
