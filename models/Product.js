@@ -63,22 +63,33 @@ const productSchema = new mongoose.Schema(
 subCategory: {
   type: String,
   enum: [
-    // ROPA
     "OVERSIZED",
     "BASICOS",
     "TANK",
     "BUZOS",
-
-    // ACCESORIOS
+    "DEPORTIVOS",
+    "CASUALES",
+    "BOTAS",
     "GORRAS",
     "GAFAS",
     "BOLSOS",
-
-    // GENERAL
     "OTROS",
   ],
   default: "OTROS",
+  validate: {
+    validator: function (value) {
+      const validMap = {
+        Ropa: ["OVERSIZED", "BASICOS", "TANK", "BUZOS"],
+        Zapatos: ["DEPORTIVOS", "CASUALES", "BOTAS"],
+        Accesorios: ["GORRAS", "GAFAS", "BOLSOS", "OTROS"],
+      };
+
+      return value === "OTROS" || validMap[this.category]?.includes(value);
+    },
+    message: "La subcategoría no corresponde a la categoría seleccionada",
+  },
 },
+
 
 
     // 🔹 Género
