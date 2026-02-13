@@ -33,7 +33,7 @@ router.post("/create_preference", async (req, res) => {
       title: "Costo de envío",
       quantity: 1,
       currency_id: "COP",
-      unit_price: 1000,
+      unit_price: 10000,
     };
 
     // 🧾 Crear preferencia
